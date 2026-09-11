@@ -1,0 +1,2075 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dreizehn Minuten</title>
+<meta name="description" content="Interaktives Geschichtsspiel über die sechs bekanntesten Attentate auf Hitler zwischen 1939 und 1944.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<style>
+/* =====================================================================
+   Dreizehn Minuten — Gestaltung
+   Dunkle Aktenfarben, DIN-nahe Schrift für Beschriftungen,
+   Serifenschrift für die Erzählung, Monospace für Daten und Uhrzeiten.
+   Das Spiel hat bewusst nur eine (dunkle) Erscheinung.
+   ===================================================================== */
+
+:root {
+  --tinte:      #0e1013;
+  --tinte-tief: #080a0c;
+  --flaeche:    #191c21;
+  --flaeche-2:  #22262c;
+  --linie:      #2f343c;
+  --papier:     #e8e5de;
+  --gedaempft:  #9aa1aa;
+  --messing:    #c8a15a;
+  --messing-2:  #e0be7c;
+  --oxid:       #b23f36;
+  --oxid-tief:  #7d2a24;
+
+  --s1: .35rem; --s2: .7rem; --s3: 1.1rem; --s4: 1.7rem; --s5: 2.6rem;
+  --schrift-titel: "Barlow Condensed", "Arial Narrow", sans-serif;
+  --schrift-text:  "Source Serif 4", Georgia, "Times New Roman", serif;
+  --schrift-daten: "IBM Plex Mono", "Courier New", monospace;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+  background: var(--tinte);
+  color: var(--papier);
+  font-family: var(--schrift-text);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* --- Hintergrundszene ------------------------------------------------ */
+
+#szene {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  background: var(--tinte-tief);
+}
+#szene svg { width: 100%; height: 100%; display: block; }
+#szene::after {                      /* Vignette */
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(125% 95% at 50% 40%, transparent 38%, rgba(6,8,10,.62) 100%),
+    linear-gradient(to bottom, rgba(6,8,10,.5) 0%, transparent 24%, transparent 48%, rgba(6,8,10,.78) 100%);
+}
+#szene.wechsel svg { animation: einblenden .9s ease both; }
+
+@keyframes einblenden { from { opacity: 0; transform: scale(1.04); } to { opacity: 1; transform: none; } }
+
+/* Szenen-Animationen */
+.staub  { fill: #d9c9a4; opacity: .16; animation: schweben linear infinite; }
+.schnee { fill: #e9eef4; opacity: .5;  animation: fallen  linear infinite; }
+@keyframes schweben { from { transform: translate3d(0,20px,0); } to { transform: translate3d(26px,-60px,0); } }
+@keyframes fallen   { from { transform: translate3d(0,-120px,0); } to { transform: translate3d(-70px,960px,0); } }
+.flackern      { animation: flackern 5.5s ease-in-out infinite; }
+@keyframes flackern { 0%,100% { opacity: .9; } 43% { opacity: .74; } 47% { opacity: 1; } 61% { opacity: .8; } }
+.suchlicht     { animation: schwenken 17s ease-in-out infinite; }
+@keyframes schwenken { 0%,100% { transform: rotate(-13deg); } 50% { transform: rotate(14deg); } }
+.zeiger        { transform-box: fill-box; transform-origin: 50% 92%; animation: ticken 60s steps(60) infinite; }
+@keyframes ticken { to { transform: rotate(360deg); } }
+.fensterlicht  { animation: flackern 7s ease-in-out infinite; }
+.klappe        { animation: puls 4.5s ease-in-out infinite; }
+@keyframes puls { 0%,100% { opacity: .3; } 50% { opacity: .8; } }
+.dunst         { animation: puls 12s ease-in-out infinite; }
+
+/* --- Grundgerüst ----------------------------------------------------- */
+
+#buehne {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding: 0 max(16px, 2.2vw);
+}
+
+/* --- Kopfleiste ------------------------------------------------------ */
+
+.hud {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  flex-wrap: wrap;
+  padding-block: var(--s2);
+  border-bottom: 1px solid rgba(200,161,90,.22);
+  font-family: var(--schrift-daten);
+  font-size: .72rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--gedaempft);
+  background: linear-gradient(to bottom, rgba(8,10,12,.85), rgba(8,10,12,0));
+}
+.hud[hidden] { display: none; }
+.hud__akte { color: var(--messing); font-weight: 500; }
+.hud__rest { margin-left: auto; display: flex; align-items: center; gap: var(--s3); }
+
+.zeitleiste { display: flex; align-items: center; gap: 0; flex: 1 1 220px; min-width: 180px; }
+.zeitleiste__punkt {
+  flex: 1;
+  height: 2px;
+  background: var(--linie);
+  position: relative;
+}
+.zeitleiste__punkt::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 8px; height: 8px;
+  margin: -4px 0 0 -4px;
+  border-radius: 50%;
+  background: var(--linie);
+  transition: background .3s, box-shadow .3s;
+}
+.zeitleiste__punkt.erledigt::after { background: var(--messing); }
+.zeitleiste__punkt.aktiv::after {
+  background: var(--messing-2);
+  box-shadow: 0 0 0 4px rgba(200,161,90,.22);
+}
+
+.leben { display: flex; gap: 5px; align-items: center; }
+.leben__zeichen {
+  width: 9px; height: 9px;
+  background: var(--messing);
+  transform: rotate(45deg);
+  transition: background .25s, transform .25s;
+}
+.leben__zeichen.weg { background: transparent; border: 1px solid var(--oxid-tief); transform: rotate(45deg) scale(.8); }
+.punkte { color: var(--papier); font-variant-numeric: tabular-nums; font-size: .82rem; }
+.punkte b { color: var(--messing-2); font-weight: 500; }
+
+/* --- Inhaltsbereich -------------------------------------------------- */
+
+main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-block: var(--s4) var(--s5);
+}
+
+/* Auf breiten Bildschirmen steht die Akte links, damit die Kulisse sichtbar bleibt. */
+@media (min-width: 1100px) {
+  main { justify-content: flex-start; padding-left: min(5vw, 4rem); }
+}
+
+.karte {
+  width: 100%;
+  max-width: 44rem;
+  background: rgba(14,16,19,.9);
+  backdrop-filter: blur(9px);
+  -webkit-backdrop-filter: blur(9px);
+  border: 1px solid var(--linie);
+  border-left: 3px solid var(--messing);
+  box-shadow: 0 26px 70px rgba(0,0,0,.6);
+  padding: var(--s4);
+  animation: auftauchen .45s ease both;
+}
+@keyframes auftauchen { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+.karte--weit { max-width: 54rem; }
+
+.eyebrow {
+  font-family: var(--schrift-daten);
+  font-size: .7rem;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--messing);
+  margin: 0 0 var(--s2);
+  display: flex;
+  gap: var(--s2);
+  flex-wrap: wrap;
+}
+.eyebrow span:not(:first-child) { color: var(--gedaempft); }
+
+h1, h2, h3 {
+  font-family: var(--schrift-titel);
+  font-weight: 600;
+  line-height: 1.03;
+  text-wrap: balance;
+  margin: 0 0 var(--s2);
+  letter-spacing: .005em;
+}
+h1 { font-size: clamp(2.8rem, 9vw, 5rem); text-transform: uppercase; }
+h2 { font-size: clamp(1.7rem, 4.4vw, 2.6rem); }
+h3 { font-size: 1.25rem; text-transform: uppercase; letter-spacing: .06em; }
+
+p { margin: 0 0 var(--s3); max-width: 62ch; }
+.lage { color: var(--papier); }
+.leise { color: var(--gedaempft); }
+strong { color: var(--messing-2); font-weight: 600; }
+
+.frage {
+  font-family: var(--schrift-titel);
+  font-size: clamp(1.35rem, 3.2vw, 1.9rem);
+  color: var(--papier);
+  margin: var(--s3) 0 var(--s3);
+  padding-top: var(--s3);
+  border-top: 1px solid var(--linie);
+  text-wrap: balance;
+}
+
+/* --- Entscheidungen -------------------------------------------------- */
+
+.optionen { display: flex; flex-direction: column; gap: var(--s2); margin: 0; padding: 0; list-style: none; }
+
+.option {
+  display: grid;
+  grid-template-columns: 2rem 1fr;
+  gap: var(--s2);
+  align-items: start;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  color: var(--papier);
+  background: var(--flaeche);
+  border: 1px solid var(--linie);
+  padding: .8rem .95rem;
+  cursor: pointer;
+  transition: background .18s, border-color .18s, transform .18s;
+}
+.option:hover:not(:disabled) { background: var(--flaeche-2); border-color: rgba(200,161,90,.55); transform: translateX(3px); }
+.option:focus-visible { outline: 2px solid var(--messing-2); outline-offset: 2px; }
+.option:disabled { cursor: default; opacity: .55; }
+.option__nr {
+  font-family: var(--schrift-daten);
+  font-size: .78rem;
+  color: var(--messing);
+  border: 1px solid var(--linie);
+  text-align: center;
+  padding: .1rem 0;
+  line-height: 1.35;
+}
+.option.richtig { border-color: var(--messing); background: rgba(200,161,90,.13); opacity: 1; }
+.option.richtig .option__nr { border-color: var(--messing); color: var(--messing-2); }
+.option.falsch { border-color: var(--oxid-tief); background: rgba(178,63,54,.12); animation: ruckeln .3s; }
+@keyframes ruckeln { 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+
+/* --- Rückmeldung ----------------------------------------------------- */
+
+.rueckmeldung {
+  margin-top: var(--s3);
+  border-top: 1px solid var(--linie);
+  padding-top: var(--s3);
+  animation: auftauchen .35s ease both;
+}
+.marke {
+  display: inline-block;
+  font-family: var(--schrift-daten);
+  font-size: .66rem;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  padding: .18rem .5rem;
+  margin-bottom: var(--s2);
+}
+.marke--ok   { color: var(--tinte); background: var(--messing); }
+.marke--nein { color: var(--papier); background: var(--oxid-tief); }
+.quelle {
+  font-family: var(--schrift-daten);
+  font-size: .74rem;
+  line-height: 1.5;
+  color: var(--gedaempft);
+  border-left: 2px solid var(--linie);
+  padding-left: var(--s2);
+  margin-top: var(--s3);
+}
+
+/* --- Knöpfe ---------------------------------------------------------- */
+
+.knopfreihe { display: flex; flex-wrap: wrap; gap: var(--s2); margin-top: var(--s3); align-items: center; }
+.knopf {
+  font-family: var(--schrift-titel);
+  font-size: 1.05rem;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--tinte);
+  background: var(--messing);
+  border: 1px solid var(--messing);
+  padding: .5rem 1.4rem;
+  cursor: pointer;
+  transition: background .18s, transform .18s;
+}
+.knopf:hover { background: var(--messing-2); transform: translateY(-1px); }
+.knopf:focus-visible { outline: 2px solid var(--papier); outline-offset: 2px; }
+.knopf--leise { background: transparent; color: var(--messing); }
+.knopf--leise:hover { background: rgba(200,161,90,.14); color: var(--messing-2); }
+
+/* --- Startbild ------------------------------------------------------- */
+
+.titelblock { text-align: left; }
+.titelblock h1 { color: var(--papier); margin-bottom: var(--s1); }
+.untertitel {
+  font-family: var(--schrift-titel);
+  font-size: clamp(1.05rem, 2.6vw, 1.45rem);
+  letter-spacing: .04em;
+  color: var(--messing);
+  text-transform: uppercase;
+  margin-bottom: var(--s3);
+}
+.regeln { display: grid; gap: var(--s2); margin: var(--s3) 0; padding: 0; list-style: none; }
+.regeln li {
+  display: grid;
+  grid-template-columns: 1.6rem 1fr;
+  gap: var(--s2);
+  font-size: .95rem;
+  color: var(--gedaempft);
+}
+.regeln b { color: var(--papier); font-weight: 600; }
+.regeln .marker { font-family: var(--schrift-daten); color: var(--messing); font-size: .8rem; }
+
+.feld { display: flex; flex-direction: column; gap: var(--s1); margin-top: var(--s3); }
+.feld label {
+  font-family: var(--schrift-daten);
+  font-size: .7rem;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--gedaempft);
+}
+.feld input {
+  font-family: var(--schrift-titel);
+  font-size: 1.3rem;
+  color: var(--papier);
+  background: var(--flaeche);
+  border: 1px solid var(--linie);
+  border-bottom: 2px solid var(--messing);
+  padding: .45rem .7rem;
+  width: min(100%, 22rem);
+}
+.feld input:focus-visible { outline: 2px solid var(--messing-2); outline-offset: 2px; }
+
+/* --- Aktenübersicht / Kapitelkarte ----------------------------------- */
+
+.daten {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: var(--s2) var(--s3);
+  border-top: 1px solid var(--linie);
+  border-bottom: 1px solid var(--linie);
+  padding-block: var(--s2);
+  margin-bottom: var(--s3);
+}
+.daten div { display: flex; flex-direction: column; gap: 2px; }
+.daten dt, .daten .k {
+  font-family: var(--schrift-daten);
+  font-size: .66rem;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--gedaempft);
+}
+.daten .w { font-family: var(--schrift-titel); font-size: 1.05rem; color: var(--papier); }
+
+.fakten { list-style: none; margin: var(--s3) 0 0; padding: 0; display: grid; gap: var(--s2); }
+.fakten li {
+  display: grid;
+  grid-template-columns: 1rem 1fr;
+  gap: var(--s2);
+  font-size: .95rem;
+  color: var(--gedaempft);
+}
+.fakten li::before { content: "—"; color: var(--messing); }
+
+/* --- Abspann und Rangliste ------------------------------------------- */
+
+.ergebnis {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s4);
+  align-items: baseline;
+  border-block: 1px solid var(--linie);
+  padding-block: var(--s3);
+  margin-bottom: var(--s3);
+}
+.ergebnis__zahl {
+  font-family: var(--schrift-titel);
+  font-size: clamp(3rem, 12vw, 5.4rem);
+  line-height: .9;
+  color: var(--messing);
+  font-variant-numeric: tabular-nums;
+}
+.ergebnis__neben { display: grid; gap: var(--s2); }
+
+.zitat {
+  font-size: 1.05rem;
+  font-style: italic;
+  color: var(--papier);
+  border-left: 3px solid var(--messing);
+  padding-left: var(--s3);
+  margin: var(--s3) 0;
+  max-width: 60ch;
+}
+.zitat cite {
+  display: block;
+  margin-top: var(--s2);
+  font-style: normal;
+  font-family: var(--schrift-daten);
+  font-size: .72rem;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--gedaempft);
+}
+
+.tabellenhuelle { overflow-x: auto; margin-top: var(--s3); }
+table.rangliste {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--schrift-daten);
+  font-size: .82rem;
+}
+table.rangliste th {
+  text-align: left;
+  font-weight: 500;
+  font-size: .66rem;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--gedaempft);
+  border-bottom: 1px solid var(--linie);
+  padding: .4rem .6rem .4rem 0;
+}
+table.rangliste td {
+  padding: .42rem .6rem .42rem 0;
+  border-bottom: 1px solid rgba(47,52,60,.5);
+  font-variant-numeric: tabular-nums;
+}
+table.rangliste tr.selbst td { color: var(--messing-2); }
+table.rangliste td:first-child { color: var(--messing); width: 2.4rem; }
+
+/* --- Kleinkram ------------------------------------------------------- */
+
+.fusszeile {
+  font-family: var(--schrift-daten);
+  font-size: .66rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: #5d646d;
+  padding-block: var(--s2) var(--s3);
+  display: flex;
+  gap: var(--s3);
+  flex-wrap: wrap;
+}
+.tastenhinweis { font-family: var(--schrift-daten); font-size: .68rem; color: #5d646d; letter-spacing: .1em; margin-top: var(--s2); }
+
+@media (max-width: 640px) {
+  .karte { padding: var(--s3); }
+  .hud { font-size: .62rem; gap: var(--s2); }
+  .hud__rest { gap: var(--s2); }
+  .zeitleiste { flex-basis: 100%; order: 3; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+  }
+}
+
+</style>
+</head>
+<body>
+<div id="szene" aria-hidden="true"></div>
+
+  <div id="buehne">
+    <header class="hud" id="hud" hidden></header>
+    <main id="inhalt"></main>
+    <footer class="fusszeile">
+      <span>Dreizehn Minuten · Unterrichtsspiel</span>
+      <span>Elser · Tresckow · Bussche · Kleist · Stieff · Stauffenberg</span>
+    </footer>
+  </div>
+
+<script>
+/*
+ * story.js — Inhalte des Spiels "Dreizehn Minuten"
+ * Sechs Attentate auf Adolf Hitler, 1939-1944.
+ *
+ * Regel des Spiels: Die historisch belegte Entscheidung ist die richtige.
+ * Wer die Geschichte kennt, kommt durch die Akte.
+ */
+
+const STORY = {
+  kapitel: [
+
+/* ===================================================================== *
+ * I — Georg Elser, 8. November 1939
+ * ===================================================================== */
+{
+  id: "elser",
+  nr: "I",
+  datum: "8. November 1939",
+  kurzdatum: "8.11.1939",
+  ort: "Bürgerbräukeller, München",
+  person: "Georg Elser, Schreiner",
+  szene: "buergerbraukeller",
+  akte: "AKTE I / ELSER",
+  intro: `Du bist Georg Elser, 36 Jahre alt, Schreiner aus Königsbronn in Württemberg.
+  Du bist in keiner Widerstandsgruppe, du hast keine Mitwisser, keine Geldgeber, keinen Auftrag.
+  Im Herbst 1938 hast du beschlossen, dass der Krieg nur zu verhindern ist, wenn die Führungsspitze
+  verschwindet. Seitdem arbeitest du daran — allein.
+  <br><br>Jedes Jahr am 8. November spricht Hitler im Münchner Bürgerbräukeller vor den
+  „alten Kämpfern“. Du hast dir die Uhrzeiten der letzten Jahre gemerkt. Du hast einen Plan:
+  eine Bombe in der Säule direkt hinter dem Rednerpult.`,
+  szenen: [
+    {
+      lage: `München, August 1939. Du hast den Saal vermessen und die Säule hinter dem Rednerpult
+      ausgewählt. Um sie auszuhöhlen, brauchst du über dreißig Nächte in einem verschlossenen Wirtshaus.`,
+      frage: "Wie kommst du Nacht für Nacht in den Bürgerbräukeller?",
+      optionen: [
+        { t: "Abends als normaler Gast essen gehen und dich vor der Sperrstunde in einer Abstellkammer einschließen lassen",
+          ok: true,
+          fb: `So hat Elser es gemacht. Er aß als Gast zu Abend, verschwand gegen 22 Uhr auf die Empore,
+          wartete, bis abgeschlossen war, und arbeitete dann bis zum Morgengrauen. Das Klopfen deckte er
+          mit dem Lärm der vorbeifahrenden Straßenbahn ab. Morgens verließ er das Haus, sobald
+          aufgeschlossen wurde.` },
+        { t: "Nachts ein Kellerfenster aufbrechen",
+          ok: false,
+          fb: `Einbruchsspuren bedeuten Polizei, und Polizei im Saal bedeutet, dass die Säule untersucht wird.
+          Elser hat nie eine Spur hinterlassen — er nahm den Holzstaub jede Nacht in einem Koffer mit hinaus.` },
+        { t: "Einen Kellner bestechen, der dich hereinlässt",
+          ok: false,
+          fb: `Jeder Mitwisser ist ein Risiko. Elsers größte Stärke war, dass er vollkommen allein handelte:
+          Die Gestapo konnte später monatelang nicht glauben, dass kein Hintermann existierte.` }
+      ],
+      quelle: "Elser mietete sich zusätzlich für Wochen in München ein und gab als Beruf „Erfinder“ an."
+    },
+    {
+      lage: `Für die Ladung brauchst du Sprengstoff, Zündkapseln und Zeit. Ein Schreiner kann so etwas
+      nicht kaufen — jeder Verkauf würde registriert.`,
+      frage: "Woher beschaffst du Sprengstoff und Zünder?",
+      optionen: [
+        { t: "Du lässt dich im Steinbruch und in einer Rüstungsfabrik anstellen und entwendest über Monate kleine Mengen",
+          ok: true,
+          fb: `Richtig. Elser arbeitete in der Armaturenfabrik Waldenmaier in Heidenheim — dort gab es
+          Pressspäne und Zünderteile — und danach im Steinbruch Königsbronn, wo er über Wochen
+          Sprengpatronen und Zündkapseln beiseiteschaffte. Kleine Mengen, nie auffällig.` },
+        { t: "Du kaufst auf dem Schwarzmarkt in München",
+          ok: false,
+          fb: `Der Schwarzmarkt ist voller Spitzel, und Sprengstoff in dieser Menge ist meldepflichtig.
+          Elser hat nie jemanden gefragt — genau deshalb kam ihm niemand auf die Spur.` },
+        { t: "Du brichst in ein Wehrmachtsdepot ein",
+          ok: false,
+          fb: `Ein Depotdiebstahl löst sofort eine reichsweite Fahndung aus. Elsers Methode war das Gegenteil:
+          unsichtbar bleiben, Monate Zeit nehmen, nichts erzwingen.` }
+      ],
+      quelle: "Elser baute den Sprengsatz in seiner Werkstatt und testete die Zündung auf einer Wiese bei Königsbronn."
+    },
+    {
+      lage: `Der Zünder ist fertig: zwei Uhrwerke, die bis zu 144 Stunden vorlaufen können.
+      Du musst die Uhr jetzt stellen — Tage im Voraus, ohne zu wissen, wie der Abend genau verläuft.`,
+      frage: "Auf welche Uhrzeit stellst du den Zünder für den 8. November?",
+      optionen: [
+        { t: "21:20 Uhr — mitten in die Rede hinein",
+          ok: true,
+          fb: `Genau so. In den Vorjahren hatte Hitler gegen 20:30 Uhr begonnen und rund zwei Stunden
+          gesprochen. 21:20 Uhr lag mitten in der Rede. Die Rechnung war völlig richtig — und trotzdem
+          falsch, wie sich zeigen wird.` },
+        { t: "20:30 Uhr — direkt zum Redebeginn",
+          ok: false,
+          fb: `Zu früh. Der Beginn verschiebt sich jedes Jahr um Minuten, und beim Einlass ist der
+          Bereich vor dem Podium noch voller Ordner. Elser rechnete mit der Mitte der Rede.` },
+        { t: "Mitternacht — wenn alle beim Bier sitzen",
+          ok: false,
+          fb: `Um Mitternacht ist der Saal leer und der Redner längst weg. Die Bombe hätte nur
+          Mauerwerk zerstört.` }
+      ],
+      quelle: "Die Ladung saß in der Säule direkt hinter dem Rednerpult, hinter einer selbstgebauten Holzklappe."
+    },
+    {
+      lage: `Die Bombe liegt seit dem 2. November in der Säule. In der Nacht zum 7. November bist du
+      noch einmal zurückgekehrt und hast das Uhrwerk abgehorcht: Es läuft.
+      Jetzt, am 8. November, bleiben dir Stunden.`,
+      frage: "Was tust du am Abend des 8. November?",
+      optionen: [
+        { t: "Nach Konstanz fahren und im Dunkeln über die grüne Grenze in die Schweiz",
+          ok: true,
+          fb: `Das war Elsers Plan. Gegen 20:45 Uhr wurde er unmittelbar an der Grenze bei Konstanz von
+          Zollbeamten aufgegriffen — 35 Minuten, bevor seine Bombe zündete. In seinen Taschen fanden sie
+          Zünderteile, Skizzen und eine Ansichtskarte des Bürgerbräukellers.` },
+        { t: "Mit dem Zug nach Berlin und dort untertauchen",
+          ok: false,
+          fb: `In der größten Stadt des Reiches ohne Papiere, ohne Geld, ohne Netzwerk unterzutauchen,
+          wäre aussichtslos gewesen. Elser wollte in die Schweiz.` },
+        { t: "In München bleiben und dich unter die Menge mischen",
+          ok: false,
+          fb: `Nach der Explosion wurde der gesamte Saal abgeriegelt und jeder Anwesende überprüft.
+          Bleiben hieße verhaftet werden.` }
+      ],
+      quelle: "Elser gestand nach tagelangen Verhören und Folter; die Gestapo suchte trotzdem weiter nach Hintermännern."
+    }
+  ],
+  epilog: {
+    titel: "21:07 Uhr",
+    text: `Wegen dichten Nebels konnte Hitler nicht fliegen. Er musste den Nachtzug nach Berlin nehmen
+    und kürzte seine Rede. Um 21:07 Uhr verließ er den Saal.
+    <strong>Um 21:20 Uhr riss die Explosion die Säule, die Empore und einen Teil der Decke herunter.</strong>
+    Acht Menschen starben, 63 wurden verletzt. Hitler war zu diesem Zeitpunkt bereits auf dem Weg zum Bahnhof.`,
+    fakten: [
+      "Dreizehn Minuten trennten Georg Elser vom Erfolg.",
+      "Elser wurde in den Konzentrationslagern Sachsenhausen und Dachau als „Sonderhäftling“ festgehalten.",
+      "Am 9. April 1945, kurz vor Kriegsende, wurde er in Dachau auf Befehl ermordet."
+    ]
+  }
+},
+
+/* ===================================================================== *
+ * II — Tresckow / Schlabrendorff, 13. März 1943
+ * ===================================================================== */
+{
+  id: "smolensk",
+  nr: "II",
+  datum: "13. März 1943",
+  kurzdatum: "13.3.1943",
+  ort: "Smolensk → Ostpreußen",
+  person: "Henning von Tresckow, Generalstabsoffizier",
+  szene: "smolensk",
+  akte: "AKTE II / FLASH",
+  intro: `Du bist Oberst i. G. Henning von Tresckow, Erster Generalstabsoffizier der Heeresgruppe Mitte
+  in Smolensk. Du weißt, was hinter der Front geschieht: Die Einsatzgruppen ermorden die jüdische
+  Bevölkerung ganzer Landstriche, sowjetische Kriegsgefangene sterben zu Hunderttausenden.
+  <br><br>Um dich hat sich ein Kreis von Offizieren gebildet. Jetzt kommt die Gelegenheit:
+  Hitler besucht am 13. März das Hauptquartier der Heeresgruppe Mitte. Danach fliegt er zurück
+  nach Ostpreußen. Dein Adjutant ist Leutnant Fabian von Schlabrendorff.`,
+  szenen: [
+    {
+      lage: `Hitler reist mit Begleitkommando, Leibwächtern und eigenem Koch. Ein Erschießen im Kasino
+      wurde im Kreis erwogen und verworfen. Bleibt der Sprengstoff — und der muss lautlos sein.`,
+      frage: "Welchen Sprengsatz wählst du?",
+      optionen: [
+        { t: "Britischen Plastiksprengstoff mit chemischem Zeitzünder aus Beutebeständen der Abwehr",
+          ok: true,
+          fb: `Richtig. Deutsche Brennzünder zischen hörbar — im Flugzeug undenkbar. Der britische
+          Säurezünder arbeitet vollkommen geräuschlos: Eine zerdrückte Ampulle lässt Säure einen Draht
+          durchfressen, dann schlägt der Schlagbolzen zu. Das Material kam über Admiral Canaris' Abwehr.` },
+        { t: "Eine deutsche Sprengladung mit Brennzünder",
+          ok: false,
+          fb: `Ein deutscher Brennzünder zischt und raucht. In der Kabine einer Focke-Wulf Condor
+          fällt das sofort auf.` },
+        { t: "Eine Pistole beim Essen im Offizierskasino",
+          ok: false,
+          fb: `Das Begleitkommando war ständig zugegen. Angebote einzelner Offiziere, Hitler bei Tisch
+          zu erschießen, wurden von Tresckow verworfen — die Erfolgsaussicht war zu gering.` }
+      ],
+      quelle: "Der Sprengstoff stammte aus abgeworfenen britischen Beständen für Sabotagegruppen („Clam“-Haftladungen)."
+    },
+    {
+      lage: `Die Ladung muss unbemerkt in Hitlers Maschine gelangen. Sie muss aussehen wie etwas,
+      das ein Offizier einem anderen ganz selbstverständlich mitgibt.`,
+      frage: "Wie tarnst du die Bombe?",
+      optionen: [
+        { t: "Als Päckchen mit zwei Flaschen Cointreau — eine verlorene Wette, adressiert an Oberst Stieff im Führerhauptquartier",
+          ok: true,
+          fb: `Genau so. Zwei zusammengeschnürte Päckchen in Flaschenform, Empfänger: Oberst Helmuth
+          Stieff im Oberkommando des Heeres. Eine Schnapswette unter Offizieren — nichts wäre
+          unauffälliger gewesen.` },
+        { t: "In einer Aktentasche mit Lagekarten",
+          ok: false,
+          fb: `Aktentaschen mit Karten trägt jeder Offizier selbst; sie werden nicht als Fracht
+          mitgegeben und landen nicht zuverlässig in Hitlers Maschine.` },
+        { t: "In einer Munitionskiste im Frachtraum",
+          ok: false,
+          fb: `Munition wird verzeichnet, gewogen und kontrolliert. Die Tarnung muss privat wirken,
+          nicht dienstlich.` }
+      ],
+      quelle: "Stieff war eingeweiht; die Sendung an ihn war reine Tarnadresse."
+    },
+    {
+      lage: `Das Päckchen ist scharf, sobald die Ampulle zerdrückt wird. Du hast rund zwei Stunden.
+      Jetzt brauchst du jemanden, der es an Bord trägt — arglos.`,
+      frage: "Wem gibst du das Päckchen mit?",
+      optionen: [
+        { t: "Oberstleutnant Heinz Brandt aus Hitlers Begleitung — du bittest ihn kurz vor dem Start um einen Gefallen",
+          ok: true,
+          fb: `So geschah es. Schlabrendorff überreichte Brandt auf dem Rollfeld das Päckchen, nachdem
+          Tresckow ihn gebeten hatte, es einem Kameraden mitzunehmen. Brandt ahnte nichts — er wird uns
+          im Juli 1944 ein zweites Mal begegnen.` },
+        { t: "Du fliegst selbst mit",
+          ok: false,
+          fb: `Tresckow wurde für die Stunde Null in Berlin gebraucht. Und ein Stabsoffizier der
+          Heeresgruppe hatte keinen Grund, mitzufliegen — jede Abweichung fällt auf.` },
+        { t: "Du schickst eine Ordonnanz zum Flugzeug",
+          ok: false,
+          fb: `Ein einfacher Soldat kommt nicht an Bord der Führermaschine. Es musste jemand aus
+          Hitlers eigener Begleitung sein.` }
+      ],
+      quelle: "Schlabrendorff zerdrückte die Zündampulle unmittelbar vor der Übergabe."
+    },
+    {
+      lage: `Ihr wartet in Smolensk auf die Meldung. Nach gut zwei Stunden kommt die Nachricht:
+      Die Maschine ist wohlbehalten in Rastenburg gelandet. Nichts ist geschehen.
+      Und im Führerhauptquartier liegt jetzt ein Paket mit einer Kilo-Ladung Sprengstoff.`,
+      frage: "Was tust du?",
+      optionen: [
+        { t: "Schlabrendorff fliegt sofort hinterher, tauscht das Päckchen gegen echten Cognac und entschärft es",
+          ok: true,
+          fb: `Richtig — und beispiellos kaltblütig. Tresckow rief Brandt an, sagte, das Päckchen sei
+          verwechselt worden, und Schlabrendorff flog am nächsten Tag nach Rastenburg, nahm das Paket
+          entgegen und zerlegte es allein im Abteil des Nachtzugs nach Berlin. Der Zünder hatte
+          funktioniert, die Sprengkapsel aber nicht gezündet — vermutlich wegen der Kälte im
+          ungeheizten Frachtraum.` },
+        { t: "Abwarten — vielleicht zündet die Bombe verspätet",
+          ok: false,
+          fb: `Abwarten hieße, dass irgendwann irgendwer das Paket öffnet. Das Ende wäre die Enttarnung
+          des gesamten Kreises der Heeresgruppe Mitte gewesen.` },
+        { t: "Brandt anonym warnen",
+          ok: false,
+          fb: `Eine anonyme Warnung im Führerhauptquartier löst sofort eine Untersuchung aus.
+          Die Spur hätte direkt nach Smolensk geführt.` }
+      ],
+      quelle: "Schlabrendorff überlebte den Krieg und wurde später Richter am Bundesverfassungsgericht."
+    }
+  ],
+  epilog: {
+    titel: "Ein Draht, den die Kälte aufhielt",
+    text: `Der chemische Zünder hatte gearbeitet, der Schlagbolzen war ausgelöst — nur die Sprengkapsel
+    versagte. Vermutlich war der Frachtraum der Maschine zu kalt.
+    <strong>Acht Tage später, am 21. März 1943, folgte der nächste Versuch:</strong> Rudolf-Christoph
+    Freiherr von Gersdorff wollte sich im Berliner Zeughaus mit Hitler zusammen in die Luft sprengen.
+    Hitler ging nach nur wenigen Minuten. Gersdorff konnte die Zünder gerade noch auf der Toilette entschärfen.`,
+    fakten: [
+      "Tresckows Satz an Stauffenberg: „Das Attentat muss erfolgen, coûte que coûte.“",
+      "Nach dem Scheitern des 20. Juli 1944 nahm sich Tresckow an der Front das Leben, um unter Folter niemanden zu verraten.",
+      "Heinz Brandt, der das Päckchen ahnungslos trug, starb 1944 an den Folgen von Stauffenbergs Bombe."
+    ]
+  }
+},
+
+/* ===================================================================== *
+ * III — Axel von dem Bussche, Winter 1943
+ * ===================================================================== */
+{
+  id: "bussche",
+  nr: "III",
+  datum: "Winter 1943",
+  kurzdatum: "Winter 1943",
+  ort: "Führerhauptquartier",
+  person: "Axel Freiherr von dem Bussche, Oberleutnant",
+  szene: "winter",
+  akte: "AKTE III / MANTEL",
+  intro: `Du bist Axel von dem Bussche, 24 Jahre alt, Oberleutnant, hoch dekoriert.
+  Im Oktober 1942 bist du in Dubno in der Ukraine zufällig Zeuge einer Massenerschießung geworden:
+  Tausende jüdische Männer, Frauen und Kinder, an einer Grube.
+  <br><br>Seitdem gibt es für dich nur drei Möglichkeiten: fallen, desertieren — oder handeln.
+  Jetzt fragt man dich, ob du bereit wärst, dem „Führer“ eine neue Winterausrüstung für die
+  Front vorzuführen. Aus nächster Nähe.`,
+  szenen: [
+    {
+      lage: `Hitler ist praktisch unerreichbar: Leibwache, Kontrollen, Vorkoster, wechselnde Termine.
+      Eine Uniformvorführung aber verlangt genau das Gegenteil — einen Frontoffizier, der ihm
+      unmittelbar gegenübertritt.`,
+      frage: "Wie näherst du dich Hitler?",
+      optionen: [
+        { t: "Als Frontoffizier, der die neue Winteruniform samt Sturmgepäck persönlich vorführt",
+          ok: true,
+          fb: `Richtig. Die Vorführung neuer Ausrüstung war der einzige Anlass, bei dem ein einfacher
+          Oberleutnant minutenlang direkt vor Hitler stehen durfte — mit Mantel, Gepäck und
+          Ausrüstungstaschen am Körper.` },
+        { t: "Als Kurier mit einer Meldung ins Lagezimmer",
+          ok: false,
+          fb: `Kuriere übergeben an Adjutanten und werden gar nicht erst vorgelassen.` },
+        { t: "Als Fahrer der Wagenkolonne",
+          ok: false,
+          fb: `Fahrer werden sicherheitsüberprüft und kommen nie in die Nähe des Fahrgastes.` }
+      ],
+      quelle: "Die Vorführung war für den 21. November 1943 vorgesehen."
+    },
+    {
+      lage: `Du wirst durchsucht werden. Du wirst keine Waffe ziehen können, ohne sofort niedergerungen
+      zu werden. Was du am Körper trägst, muss Teil der Ausrüstung sein.`,
+      frage: "Welche Methode wählst du?",
+      optionen: [
+        { t: "Eine Handgranate in der Manteltasche zünden, Hitler umklammern und mit ihm sterben",
+          ok: true,
+          fb: `Das war Bussches Entschluss: das Selbstopfer. Die deutsche Eihandgranate hatte 4,5
+          Sekunden Verzögerung — zu lang, um den Raum zu verlassen, aber lang genug, um Hitler
+          festzuhalten. Bussche sagte später, er habe keinen anderen Weg gesehen, „als selbst
+          dabei zu bleiben".` },
+        { t: "Eine Pistole ziehen, sobald du vor ihm stehst",
+          ok: false,
+          fb: `Vor der Vorführung wird kontrolliert, und im Raum stehen Leibwächter. Eine Pistole
+          bedeutet: niedergeschlagen, bevor der erste Schuss fällt.` },
+        { t: "Gift in Hitlers Getränk",
+          ok: false,
+          fb: `Hitlers Essen und Getränke wurden vorgekostet. Ein Frontoffizier kommt ohnehin
+          nie an sein Geschirr.` }
+      ],
+      quelle: "Bussche besorgte sich die Granate über Vertraute; Stauffenberg hatte ihn für die Aufgabe gewonnen."
+    },
+    {
+      lage: `Du hast einen Eid auf Hitler geschworen. Du bist gläubiger Christ. Du weißt, dass bei
+      der Explosion auch andere sterben werden — und dass man dich als Mörder und Verräter
+      in die Geschichtsbücher schreiben wird.`,
+      frage: "Wie entscheidest du dich?",
+      optionen: [
+        { t: "Ein Eid auf einen Verbrecher bindet nicht — wer Massenmord befiehlt, hat den Anspruch auf Treue verwirkt",
+          ok: true,
+          fb: `Das war die Überzeugung, die Bussche und die Verschwörer trugen. Für viele Offiziere
+          war der Eid die größte innere Hürde des gesamten Widerstands — Bussche entschied, dass
+          die Verbrechen den Eid aufgehoben hatten.` },
+        { t: "Der Eid gilt bedingungslos, du trittst zurück",
+          ok: false,
+          fb: `Das war die Haltung, mit der die meisten es nicht taten. Bussche entschied anders —
+          genau das macht ihn zum Teil dieser Akte.` },
+        { t: "Du wartest ab, bis die Alliierten die Sache erledigen",
+          ok: false,
+          fb: `Jeder Monat Krieg kostete Hunderttausende Menschenleben. Für die Verschwörer war
+          gerade das Warten die Schuld.` }
+      ],
+      quelle: "Bussche war Zeuge der Massenerschießung in Dubno am 5. Oktober 1942 geworden."
+    },
+    {
+      lage: `Du bist in Berlin, bereit, mit der Granate in der Tasche. Dann ein Luftangriff:
+      Der Zug mit den Musterstücken der neuen Uniform wird zerstört. Es gibt nichts vorzuführen.
+      Kurz darauf wird dein Regiment wieder an die Front beordert.`,
+      frage: "Was tust du?",
+      optionen: [
+        { t: "Bereitbleiben und auf einen Ersatztermin warten — und bis dahin an die Front zurückkehren",
+          ok: true,
+          fb: `So geschah es. Der Termin platzte, die Vorführung wurde immer wieder verschoben.
+          Bussche ging zurück an die Ostfront und wurde im Januar 1944 schwer verwundet — er verlor
+          ein Bein. Damit kam er für ein Attentat nicht mehr in Frage.` },
+        { t: "Ohne Vorführung ins Hauptquartier gehen und es erzwingen",
+          ok: false,
+          fb: `Ohne dienstlichen Anlass kommt niemand in den Sperrkreis. Der Versuch hätte den
+          gesamten Kreis um Stauffenberg aufliegen lassen.` },
+        { t: "Aufgeben und schweigen",
+          ok: false,
+          fb: `Bussche gab nicht auf — er hielt sich monatelang bereit. Erst seine Verwundung
+          beendete seine Rolle.` }
+      ],
+      quelle: "Die Granate versteckte Bussche später; er wurde nie enttarnt und überlebte den Krieg."
+    }
+  ],
+  epilog: {
+    titel: "Ein Luftangriff, der niemanden rettete",
+    text: `Der Zufall traf diesmal nicht die Bombe, sondern die Uniformen. Ein alliierter Luftangriff
+    auf Berlin zerstörte die Musterstücke, die Bussche vorführen sollte. Der Termin verfiel,
+    das Attentat fand nie statt.
+    <strong>Bussche blieb bereit — aber die Front kam ihm zuvor.</strong>`,
+    fakten: [
+      "Bussche verlor im Januar 1944 durch eine Verwundung ein Bein und schied als Attentäter aus.",
+      "Er wurde nie entdeckt, überlebte den Krieg und arbeitete später im diplomatischen Dienst.",
+      "Seine Rolle sollte ein anderer übernehmen — ein 21-jähriger Leutnant."
+    ]
+  }
+},
+
+/* ===================================================================== *
+ * IV — Ewald-Heinrich von Kleist, Anfang 1944
+ * ===================================================================== */
+{
+  id: "kleist",
+  nr: "IV",
+  datum: "Anfang 1944",
+  kurzdatum: "Anf. 1944",
+  ort: "Berlin / Gut Schmenzin, Pommern",
+  person: "Ewald-Heinrich von Kleist, Leutnant",
+  szene: "schmenzin",
+  akte: "AKTE IV / SOHN",
+  intro: `Du bist Ewald-Heinrich von Kleist, 21 Jahre alt, Leutnant. Dein Vater, Ewald von Kleist-Schmenzin,
+  ist seit 1938 ein erklärter Gegner Hitlers und reiste damals sogar heimlich nach London, um vor dem
+  Krieg zu warnen.
+  <br><br>Anfang 1944 bittet dich Oberst Claus Schenk Graf von Stauffenberg in sein Büro.
+  Er fragt dich, ob du bereit bist, die Rolle zu übernehmen, die Bussche nicht mehr übernehmen kann:
+  die Uniformvorführung — mit einer Sprengladung am Körper.`,
+  szenen: [
+    {
+      lage: `Stauffenberg wartet auf deine Antwort. Es geht nicht um ein Risiko, es geht um den
+      sicheren Tod. Du bist 21.`,
+      frage: "Was tust du, bevor du zusagst?",
+      optionen: [
+        { t: "Du bittest um Bedenkzeit und fährst nach Schmenzin, um deinen Vater zu fragen",
+          ok: true,
+          fb: `So war es. Kleist fuhr nach Pommern zu seinem Vater. Der antwortete ihm:
+          „Ja, das musst du tun. Wer in einem solchen Augenblick versagt, wird nie wieder froh im Leben.“
+          Ein Vater, der seinem Sohn rät, sein Leben zu geben.` },
+        { t: "Du sagst sofort zu, ohne mit jemandem zu sprechen",
+          ok: false,
+          fb: `Kleist hat vorher mit seinem Vater gesprochen — diese Szene gehört zu den
+          eindrücklichsten Überlieferungen des 20. Juli.` },
+        { t: "Du lehnst ab und nennst Stauffenberg einen anderen Namen",
+          ok: false,
+          fb: `Kleist lehnte nicht ab. Er sagte zu und hielt sich monatelang bereit.` }
+      ],
+      quelle: "Ewald von Kleist-Schmenzin wurde nach dem 20. Juli 1944 verhaftet und 1945 hingerichtet."
+    },
+    {
+      lage: `Du hast zugesagt. Der Termin für die Vorführung steht: 11. Februar 1944.
+      Dann wird er abgesagt. Dann wieder angesetzt. Dann wieder abgesagt.
+      Hitlers Terminkalender ist unberechenbar, und jede Absage ist eine Woche Warten auf den eigenen Tod.`,
+      frage: "Wie verhältst du dich?",
+      optionen: [
+        { t: "Du bleibst bereit und meldest dich für jeden neuen Termin",
+          ok: true,
+          fb: `Richtig. Kleist hielt sich über Monate bereit. Die Vorführung kam nie zustande —
+          Hitler sagte immer wieder ab, verlegte Termine, misstraute Routinen. Diese Unberechenbarkeit
+          schützte ihn besser als jede Leibwache.` },
+        { t: "Du drängst auf einen festen Termin",
+          ok: false,
+          fb: `Wer im Hauptquartier auf Termine drängt, macht sich verdächtig. Die Verschwörer
+          konnten nur warten.` },
+        { t: "Du ziehst deine Zusage zurück",
+          ok: false,
+          fb: `Kleist blieb bei seiner Zusage — bis zum 20. Juli und darüber hinaus.` }
+      ],
+      quelle: "Auch diese Vorführung fand nie statt; Hitler sagte sie wiederholt ab."
+    },
+    {
+      lage: `20. Juli 1944. Du bist im Bendlerblock in Berlin, im Zentrum des Umsturzversuchs.
+      Am Abend wird klar: Hitler lebt. Die Verschwörung bricht zusammen, Offiziere werden im Hof
+      erschossen, die Gestapo rückt an.`,
+      frage: "Was tust du in dieser Nacht?",
+      optionen: [
+        { t: "Du bleibst auf deinem Posten und fährst Befehle aus, solange es geht",
+          ok: true,
+          fb: `Kleist blieb. Er wurde verhaftet und verhört — aber man konnte ihm nichts nachweisen.
+          Er überlebte als einer der wenigen Beteiligten und wurde später Gründer der
+          Münchner Sicherheitskonferenz.` },
+        { t: "Du fliehst sofort nach Hause",
+          ok: false,
+          fb: `Fluchtversuche in dieser Nacht führten fast alle zur sofortigen Verhaftung —
+          und galten der Gestapo als Geständnis.` },
+        { t: "Du zeigst deine Kameraden an, um dich zu retten",
+          ok: false,
+          fb: `Niemand aus dem engsten Kreis tat das. Tresckow nahm sich das Leben,
+          um unter Folter niemanden zu verraten.` }
+      ],
+      quelle: "Rund 200 Beteiligte des Widerstands wurden nach dem 20. Juli hingerichtet."
+    }
+  ],
+  epilog: {
+    titel: "Der Termin, der nie kam",
+    text: `Kleists Attentat scheiterte nicht an einem Zünder und nicht an Minuten, sondern an Hitlers
+    Unberechenbarkeit: Die Vorführung wurde immer wieder verschoben und fand nie statt.
+    <strong>Damit war klar: Auf einen Termin zu warten, hieß, nie zum Schuss zu kommen.</strong>`,
+    fakten: [
+      "Kleists Vater wurde am 9. April 1945 in Plötzensee hingerichtet.",
+      "Ewald-Heinrich von Kleist überlebte Haft und Krieg und starb 2013.",
+      "Die Verschwörer brauchten jemanden, der ohnehin regelmäßig zu Hitler musste — einen Stabsoffizier."
+    ]
+  }
+},
+
+/* ===================================================================== *
+ * V — Helmuth Stieff, 7. Juli 1944
+ * ===================================================================== */
+{
+  id: "stieff",
+  nr: "V",
+  datum: "7. Juli 1944",
+  kurzdatum: "7.7.1944",
+  ort: "Schloss Klessheim bei Salzburg",
+  person: "Helmuth Stieff, Generalmajor",
+  szene: "klessheim",
+  akte: "AKTE V / KLESSHEIM",
+  intro: `Du bist Generalmajor Helmuth Stieff, Chef der Organisationsabteilung im Generalstab des Heeres.
+  Du bist seit Jahren eingeweiht — an dich war 1943 das Cointreau-Paket adressiert, und in deinem
+  Bereich lagert seither der britische Sprengstoff der Verschwörer.
+  <br><br>Am 7. Juli 1944 wird auf Schloss Klessheim bei Salzburg neue Ausrüstung vorgeführt.
+  Hitler wird anwesend sein. Auch Stauffenberg ist da. Du hast den Sprengstoff dabei.`,
+  szenen: [
+    {
+      lage: `Die Vorführung ist die letzte greifbare Gelegenheit seit Monaten. Du bist einer der
+      wenigen Eingeweihten, die dienstlich in Hitlers Nähe kommen.`,
+      frage: "Wie gehst du in die Vorführung?",
+      optionen: [
+        { t: "Mit der Sprengladung im Gepäck, zur Zündung bereit",
+          ok: true,
+          fb: `So war es geplant. Stieff hatte den Sprengstoff aus den Beständen der Verschwörer
+          dabei; er galt im Kreis als der Mann, der an diesem Tag zünden sollte.` },
+        { t: "Ohne Sprengstoff — nur zur Beobachtung",
+          ok: false,
+          fb: `Der Kreis um Stauffenberg hatte auf diesen Termin gesetzt. Stieff kam mit dem
+          Sprengstoff nach Klessheim.` },
+        { t: "Du meldest dich krank",
+          ok: false,
+          fb: `Stieff war an diesem Tag anwesend. Was fehlte, war nicht die Gelegenheit.` }
+      ],
+      quelle: "Stieff verwahrte seit 1943 den britischen Sprengstoff der Verschwörer."
+    },
+    {
+      lage: `Hitler steht vor dir. Die Ausrüstungsstücke werden gezeigt, es wird gefragt und geantwortet.
+      Der Sprengstoff ist griffbereit. Es sind nur Sekunden nötig.`,
+      frage: "Was geschieht in diesem Moment?",
+      optionen: [
+        { t: "Du bringst es nicht über dich — du zündest nicht",
+          ok: true,
+          fb: `Das ist die historische Wahrheit. Stieff zündete nicht. Über die Gründe wird bis heute
+          gestritten: Zweifel, Skrupel, die Sorge, dass Himmler und Göring nicht anwesend waren und
+          das Regime weiterbestehen würde — oder schlicht die Last, aus nächster Nähe zu töten.
+          Für Stauffenberg war dieser Tag der Wendepunkt.` },
+        { t: "Du zündest sofort",
+          ok: false,
+          fb: `Es wäre die Chance gewesen — aber sie wurde nicht genutzt. Gerade dieses Nicht-Handeln
+          gehört zur Geschichte des Widerstands: Attentäter sind keine Maschinen.` },
+        { t: "Du übergibst den Sprengstoff an Stauffenberg im Saal",
+          ok: false,
+          fb: `Eine Übergabe vor Zeugen im Sperrkreis wäre Selbstmord ohne Wirkung gewesen.` }
+      ],
+      quelle: "Stauffenberg war am 7. Juli 1944 in Klessheim anwesend und erlebte das Scheitern mit."
+    },
+    {
+      lage: `Der Tag ist vorbei, Hitler lebt, und im Kreis ist klar: Auf einen anderen zu warten,
+      führt zu nichts. Stauffenberg ist inzwischen Chef des Stabes beim Befehlshaber des Ersatzheeres —
+      er wird selbst zu Lagebesprechungen befohlen.`,
+      frage: "Wer führt das Attentat künftig aus?",
+      optionen: [
+        { t: "Stauffenberg selbst — obwohl er gleichzeitig in Berlin den Umsturz leiten muss",
+          ok: true,
+          fb: `Richtig, und es ist der tragische Kern des 20. Juli: Der einzige Mann, der an Hitler
+          herankam, war zugleich der einzige, der in Berlin die Befehle geben konnte. Stauffenberg
+          musste beides tun — schwer kriegsversehrt, mit drei Fingern an einer Hand.` },
+        { t: "Ein neuer Freiwilliger wird gesucht",
+          ok: false,
+          fb: `Dafür war keine Zeit mehr. Verhaftungen standen bevor, die Front brach zusammen,
+          und Zugang zu Hitler hatte fast niemand mehr.` },
+        { t: "Das Vorhaben wird abgebrochen",
+          ok: false,
+          fb: `Tresckows Botschaft an Stauffenberg lautete: Das Attentat muss erfolgen — „coûte que coûte“ —
+          auch wenn es misslingt. Die Welt müsse sehen, dass es Widerstand gab.` }
+      ],
+      quelle: "Am 11. und 15. Juli 1944 brach Stauffenberg zwei Anläufe kurzfristig ab."
+    }
+  ],
+  epilog: {
+    titel: "Sekunden, die niemand nutzte",
+    text: `Klessheim scheiterte nicht an Technik und nicht am Zufall, sondern am Menschen.
+    <strong>Danach entschied Stauffenberg, es selbst zu tun.</strong>
+    Zwei weitere Anläufe brach er am 11. und 15. Juli ab, weil Himmler nicht anwesend war
+    beziehungsweise die Besprechung zu früh endete. Der dritte Anlauf war der 20. Juli.`,
+    fakten: [
+      "Stieff wurde nach dem 20. Juli verhaftet und vor dem Volksgerichtshof unter Roland Freisler gedemütigt.",
+      "Er wurde am 8. August 1944 in Berlin-Plötzensee hingerichtet.",
+      "Die Prozesse wurden gefilmt — die Aufnahmen sollten abschrecken."
+    ]
+  }
+},
+
+/* ===================================================================== *
+ * VI — Stauffenberg, 20. Juli 1944
+ * ===================================================================== */
+{
+  id: "stauffenberg",
+  nr: "VI",
+  datum: "20. Juli 1944",
+  kurzdatum: "20.7.1944",
+  ort: "Wolfsschanze, Rastenburg",
+  person: "Claus Schenk Graf von Stauffenberg, Oberst i. G.",
+  szene: "wolfsschanze",
+  akte: "AKTE VI / WALKÜRE",
+  intro: `Du bist Oberst i. G. Claus Schenk Graf von Stauffenberg, Chef des Stabes beim Befehlshaber
+  des Ersatzheeres. In Nordafrika hast du 1943 die rechte Hand, zwei Finger der linken Hand und das
+  linke Auge verloren.
+  <br><br>Du wirst zur Lagebesprechung in die Wolfsschanze bei Rastenburg befohlen.
+  In deiner Aktentasche liegen zwei Sprengstoffblöcke. In Berlin warten Offiziere auf den Befehl
+  „Walküre“ — den Einsatzplan des Ersatzheeres, den ihr umgeschrieben habt, damit er den Umsturz trägt.`,
+  szenen: [
+    {
+      lage: `Das Attentat muss in Ostpreußen geschehen. Der Umsturz muss in Berlin geführt werden.
+      Beides am selben Tag, 600 Kilometer auseinander.`,
+      frage: "Wie löst du dieses Problem?",
+      optionen: [
+        { t: "Du machst beides selbst — zünden in Rastenburg, dann sofort nach Berlin fliegen",
+          ok: true,
+          fb: `So geschah es — und es war der Kardinalfehler der Verschwörung. Stauffenberg fehlte
+          in den entscheidenden Stunden in Berlin, während er im Flugzeug saß. Aber er war der Einzige,
+          der Zugang zu Hitler hatte.` },
+        { t: "Du überträgst das Attentat einem anderen und bleibst in Berlin",
+          ok: false,
+          fb: `Genau das war am 7. Juli in Klessheim gescheitert. Es gab niemanden mehr.` },
+        { t: "Du verlegst den Umsturz nach Ostpreußen",
+          ok: false,
+          fb: `Die Befehlsgewalt über das Ersatzheer, die Nachrichtenzentralen und die Ministerien
+          saßen in Berlin. Ohne Berlin kein Umsturz.` }
+      ],
+      quelle: "Der Plan „Walküre“ war offiziell für innere Unruhen gedacht und wurde von den Verschwörern umgeschrieben."
+    },
+    {
+      lage: `12:30 Uhr. Die Lagebesprechung findet nicht im Betonbunker statt, sondern in der
+      hölzernen Lagebaracke — es ist heiß, der Bunker wird umgebaut.`,
+      frage: "Führst du das Attentat trotzdem durch?",
+      optionen: [
+        { t: "Ja — ein weiterer Abbruch ist nicht mehr zu verantworten",
+          ok: true,
+          fb: `Richtig. Zwei Anläufe hatte Stauffenberg bereits abgebrochen. In der Holzbaracke
+          konnte die Druckwelle durch Fenster und dünne Wände entweichen — im Bunker wären
+          vermutlich alle gestorben. Aber ein dritter Abbruch hätte die Verschwörung wohl endgültig
+          zerbrochen; Verhaftungen standen unmittelbar bevor.` },
+        { t: "Nein — abbrechen und auf eine Besprechung im Bunker warten",
+          ok: false,
+          fb: `Die Gestapo war den Verschwörern bereits auf der Spur; für den 21. Juli war
+          Stauffenbergs Verhaftungsrisiko real. Es gab kein „nächstes Mal“ mehr.` }
+      ],
+      quelle: "Der Bunker der Wolfsschanze wurde im Sommer 1944 verstärkt; die Lage fand deshalb in der Baracke statt."
+    },
+    {
+      lage: `Du ziehst dich mit deinem Adjutanten Werner von Haeften in einen Nebenraum zurück,
+      um die Zünder zu aktivieren. Mit drei Fingern drückst du die Zündampulle mit einer Spezialzange auf.
+      Dann klopft es: Ein Feldwebel drängt zur Eile, die Besprechung hat begonnen.
+      Erst ein Block ist scharf.`,
+      frage: "Wie entscheidest du?",
+      optionen: [
+        { t: "Du gehst mit dem einen scharfen Block hinein — keine Zeit mehr",
+          ok: true,
+          fb: `So war es. Der zweite, nicht scharf gemachte Block blieb zurück; Haeften nahm ihn mit
+          und warf ihn später aus dem Auto. Er hätte die Sprengwirkung verdoppelt und — selbst ohne
+          eigenen Zünder — durch die Explosion mitgezündet. Diese unterbrochene Minute im
+          Nebenzimmer entschied den 20. Juli.` },
+        { t: "Du nimmst dir die Zeit für beide Blöcke",
+          ok: false,
+          fb: `Die Zeit gab es nicht: Der Zünder des ersten Blocks lief bereits, und der Feldwebel
+          stand in der Tür. Jede weitere Minute hätte Verdacht erregt.` },
+        { t: "Du brichst ab und lässt beide Blöcke entschärft",
+          ok: false,
+          fb: `Ein dritter Abbruch war nicht mehr möglich. Stauffenberg ging hinein.` }
+      ],
+      quelle: "Der Zeitzünder war auf etwa zehn Minuten eingestellt."
+    },
+    {
+      lage: `Du betrittst die Lagebaracke. Um den schweren Kartentisch stehen rund 24 Offiziere.
+      Hitler beugt sich über die Karten. Du meldest dich, stellst deine Aktentasche ab
+      und brauchst einen Vorwand, um den Raum zu verlassen.`,
+      frage: "Wo stellst du die Tasche ab und wie kommst du hinaus?",
+      optionen: [
+        { t: "So nah wie möglich an Hitler unter den Kartentisch — dann lässt du dich zu einem Telefonat herausrufen",
+          ok: true,
+          fb: `Genau so. Stauffenberg schob die Tasche unter den Tisch, wenige Schritte von Hitler
+          entfernt, und ließ sich unter dem Vorwand eines Ferngesprächs mit Berlin hinausrufen.
+          Was er nicht wissen konnte: Oberst Heinz Brandt — derselbe Offizier, der 1943 das
+          Cointreau-Paket getragen hatte — stieß beim Vorbeugen an die Tasche und schob sie auf die
+          andere Seite des massiven Tischsockels. Der Sockel schirmte Hitler ab. Brandt starb.` },
+        { t: "Neben die Tür, damit du schnell hinauskommst",
+          ok: false,
+          fb: `Bei einer Kilo-Ladung entscheiden Meter. An der Tür hätte niemand am Tisch
+          tödliche Verletzungen davongetragen.` },
+        { t: "Du behältst die Tasche in der Hand bis zum Schluss",
+          ok: false,
+          fb: `Dann stirbst du mit — und in Berlin gibt niemand die Walküre-Befehle.
+          Stauffenbergs Plan verlangte, dass er überlebt.` }
+      ],
+      quelle: "Die Explosion erfolgte um 12:42 Uhr. Vier Menschen starben, Hitler wurde leicht verletzt."
+    },
+    {
+      lage: `12:42 Uhr. Die Baracke zerreißt, Rauch, Trümmer, Schreie. Du bist überzeugt:
+      Niemand kann das überlebt haben. Zwischen dir und dem Flugplatz liegen drei Kontrollpunkte
+      im abgeriegelten Sperrkreis.`,
+      frage: "Was tust du?",
+      optionen: [
+        { t: "Du bluffst dich durch die Sperren und fliegst sofort nach Berlin",
+          ok: true,
+          fb: `Richtig. Stauffenberg redete sich an den Wachen vorbei, erreichte die bereitgestellte
+          Maschine und flog nach Berlin — drei Stunden ohne Funkkontakt. In genau diesen drei Stunden
+          entschied sich alles, und niemand in Berlin wagte, ohne ihn zu handeln.` },
+        { t: "Du bleibst und prüfst, ob Hitler wirklich tot ist",
+          ok: false,
+          fb: `Bleiben hieße verhaftet werden, sobald die Untersuchung beginnt — und Berlin
+          bliebe ohne Führung.` },
+        { t: "Du meldest den Tod per Funk und wartest auf Bestätigung",
+          ok: false,
+          fb: `Der Sperrkreis wurde nach der Explosion sofort für den Nachrichtenverkehr gesperrt.` }
+      ],
+      quelle: "Haeften warf den zweiten Sprengstoffblock auf der Fahrt zum Flugplatz aus dem Wagen."
+    },
+    {
+      lage: `16:30 Uhr, Bendlerstraße Berlin. Du landest und erfährst: Walküre wurde nicht ausgelöst.
+      General Olbricht hat auf Bestätigung gewartet. Aus der Wolfsschanze meldet Keitel:
+      Der Führer lebt.`,
+      frage: "Was tust du jetzt?",
+      optionen: [
+        { t: "Du löst Walküre trotzdem aus und behauptest überall, Hitler sei tot",
+          ok: true,
+          fb: `So geschah es — aber drei Stunden zu spät. Die Fernschreiben gingen erst am
+          späten Nachmittag hinaus. In Berlin verweigerte Major Remer den Gehorsam, nachdem Goebbels
+          ihn mit Hitler persönlich telefonieren ließ. Nur in Paris wurde der Umsturz kurzzeitig
+          vollständig durchgeführt.` },
+        { t: "Du brichst ab, um Leben zu retten",
+          ok: false,
+          fb: `Für einen Abbruch war es zu spät — die Fernschreiben und Verhaftungen liefen bereits.
+          Und Tresckows Botschaft lautete: Das Zeichen muss gesetzt werden, auch wenn es misslingt.` },
+        { t: "Du fliehst ins Ausland",
+          ok: false,
+          fb: `Keiner der Verschwörer floh. Stauffenberg blieb bis zur letzten Stunde im Bendlerblock.` }
+      ],
+      quelle: "General Fromm ließ Stauffenberg, Olbricht, Haeften und Mertz von Quirnheim noch in derselben Nacht erschießen."
+    }
+  ],
+  epilog: {
+    titel: "00:15 Uhr, Hof des Bendlerblocks",
+    text: `Die Explosion tötete vier Menschen. Hitler kam mit zerfetzter Hose, Verbrennungen und
+    geplatzten Trommelfellen davon — abgeschirmt vom massiven Sockel des Kartentischs, hinter den
+    Oberst Brandt die Aktentasche geschoben hatte.
+    <strong>In der Nacht zum 21. Juli 1944 wurden Stauffenberg, Olbricht, Mertz von Quirnheim und
+    Haeften im Hof des Bendlerblocks im Scheinwerferlicht von Lastwagen erschossen.</strong>
+    Stauffenbergs letzte Worte: „Es lebe das heilige Deutschland.“`,
+    fakten: [
+      "Rund 200 Beteiligte wurden in den folgenden Monaten hingerichtet, viele nach Schauprozessen vor dem Volksgerichtshof.",
+      "Angehörige wurden in „Sippenhaft“ genommen, auch Kinder.",
+      "Der Krieg dauerte noch fast zehn Monate — mehr Menschen starben nach dem 20. Juli 1944 als davor."
+    ]
+  }
+}
+
+  ],
+
+  /* Abschlusstext nach allen sechs Akten */
+  fazit: {
+    titel: "Warum hat er jedes Mal überlebt?",
+    text: `Sechs Mal, sechs Pläne, sechs Mal Scheitern: dichter Nebel und dreizehn Minuten,
+    ein Zünder in einem eiskalten Frachtraum, ein Luftangriff auf einen Eisenbahnwaggon, ein
+    Termin, der immer wieder verschoben wurde, ein Mann, der im entscheidenden Moment nicht konnte,
+    und ein Tischsockel aus massivem Eichenholz.
+    <br><br>Nichts davon war Vorsehung. Es war Zufall, schlechtes Timing, Pech — und ein
+    Sicherheitsapparat, gegen den Einzelne kaum eine Chance hatten.
+    Entscheidend ist nicht, dass die Attentate scheiterten, sondern dass es sie gab:
+    Menschen, die wussten, was sie riskierten, und die trotzdem handelten.`,
+    zitat: "„Das Attentat muss erfolgen, coûte que coûte. Sollte es misslingen, so muss trotzdem in Berlin gehandelt werden. Denn es kommt nicht mehr auf den praktischen Zweck an, sondern darauf, dass die deutsche Widerstandsbewegung vor der Welt und vor der Geschichte den entscheidenden Wurf gewagt hat.“",
+    zitatQuelle: "Henning von Tresckow, Sommer 1944"
+  }
+};
+
+if (typeof module !== "undefined") { module.exports = STORY; }
+
+
+/*
+ * scenes.js — Hintergrundbilder des Spiels.
+ * Alle Szenen sind handgezeichnete SVG-Kulissen: keine Fotos, keine externen Dateien,
+ * keine NS-Symbole. Das Spiel läuft dadurch vollständig offline.
+ */
+
+/* Hilfsfunktionen ---------------------------------------------------- */
+
+// Deterministischer Zufall, damit eine Szene bei jedem Aufruf gleich aussieht.
+function rnd(seed) {
+  let s = seed;
+  return () => {
+    s = (s * 1103515245 + 12345) % 2147483648;
+    return s / 2147483648;
+  };
+}
+
+function partikel(anzahl, seed, klasse, rMin, rMax) {
+  const r = rnd(seed);
+  let out = "";
+  for (let i = 0; i < anzahl; i++) {
+    const x = (r() * 1700 - 50).toFixed(1);
+    const y = (r() * 900).toFixed(1);
+    const rad = (rMin + r() * (rMax - rMin)).toFixed(2);
+    const dur = (6 + r() * 14).toFixed(1);
+    const delay = (-r() * 20).toFixed(1);
+    out += `<circle class="${klasse}" cx="${x}" cy="${y}" r="${rad}"
+      style="animation-duration:${dur}s;animation-delay:${delay}s"/>`;
+  }
+  return out;
+}
+
+function baumreihe(y, hoehe, farbe, seed, anzahl) {
+  const r = rnd(seed);
+  let out = "";
+  for (let i = 0; i < anzahl; i++) {
+    const x = (i / anzahl) * 1700 - 50 + r() * 40;
+    const h = hoehe * (0.6 + r() * 0.7);
+    const b = h * (0.22 + r() * 0.12);
+    out += `<path d="M${x} ${y} L${x + b} ${y - h * 0.55} L${x + b * 0.45} ${y - h * 0.5}
+      L${x + b * 1.05} ${y - h} L${x - b * 1.05} ${y - h} L${x - b * 0.45} ${y - h * 0.5}
+      L${x - b} ${y - h * 0.55} Z" fill="${farbe}"/>`;
+  }
+  return out;
+}
+
+/* Szenen -------------------------------------------------------------- */
+
+const SCENES = {
+
+  /* Titelbild: eine Zünderuhr im Dunkeln --------------------------------- */
+  titel: () => `
+  <svg viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+    <defs>
+      <radialGradient id="t-glow" cx="50%" cy="45%" r="60%">
+        <stop offset="0%" stop-color="#2a2a24"/>
+        <stop offset="55%" stop-color="#15161a"/>
+        <stop offset="100%" stop-color="#0b0c0e"/>
+      </radialGradient>
+    </defs>
+    <rect width="1600" height="900" fill="url(#t-glow)"/>
+    <g transform="translate(800 430)" opacity="0.5">
+      <circle r="300" fill="none" stroke="#3a342a" stroke-width="2"/>
+      <circle r="268" fill="none" stroke="#2a2620" stroke-width="18"/>
+      ${Array.from({ length: 60 }, (_, i) => {
+        const a = (i / 60) * Math.PI * 2;
+        const lang = i % 5 === 0;
+        const r1 = lang ? 232 : 248;
+        return `<line x1="${(Math.sin(a) * r1).toFixed(1)}" y1="${(-Math.cos(a) * r1).toFixed(1)}"
+          x2="${(Math.sin(a) * 262).toFixed(1)}" y2="${(-Math.cos(a) * 262).toFixed(1)}"
+          stroke="${lang ? "#C8A15A" : "#5a5346"}" stroke-width="${lang ? 4 : 2}"/>`;
+      }).join("")}
+      <line x1="0" y1="30" x2="0" y2="-170" stroke="#C8A15A" stroke-width="7" stroke-linecap="round"/>
+      <line class="zeiger" x1="0" y1="20" x2="0" y2="-230" stroke="#A8352F" stroke-width="4" stroke-linecap="round"/>
+      <circle r="12" fill="#C8A15A"/>
+    </g>
+    ${partikel(40, 7, "staub", 0.6, 2.2)}
+    <rect width="1600" height="900" fill="url(#t-glow)" opacity="0.25"/>
+  </svg>`,
+
+  /* I — Bürgerbräukeller München ---------------------------------------- */
+  buergerbraukeller: () => `
+  <svg viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+    <defs>
+      <linearGradient id="bk-wand" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#2b1d12"/>
+        <stop offset="100%" stop-color="#120c08"/>
+      </linearGradient>
+      <radialGradient id="bk-lampe" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#ffd89b" stop-opacity="0.85"/>
+        <stop offset="100%" stop-color="#ffd89b" stop-opacity="0"/>
+      </radialGradient>
+      <linearGradient id="bk-saeule" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stop-color="#0f0a06"/>
+        <stop offset="35%" stop-color="#4a3320"/>
+        <stop offset="40%" stop-color="#463122"/>
+        <stop offset="100%" stop-color="#120c08"/>
+      </linearGradient>
+    </defs>
+    <rect width="1600" height="900" fill="url(#bk-wand)"/>
+    <!-- Gewölbebögen -->
+    <g fill="#0d0906">
+      <path d="M120 900 V420 a180 180 0 0 1 360 0 V900 Z"/>
+      <path d="M620 900 V380 a180 180 0 0 1 360 0 V900 Z"/>
+      <path d="M1120 900 V420 a180 180 0 0 1 360 0 V900 Z"/>
+    </g>
+    <g fill="#1d1409">
+      <path d="M150 900 V430 a150 150 0 0 1 300 0 V900 Z"/>
+      <path d="M650 900 V390 a150 150 0 0 1 300 0 V900 Z"/>
+      <path d="M1150 900 V430 a150 150 0 0 1 300 0 V900 Z"/>
+    </g>
+    <!-- Hängelampen -->
+    <g>
+      <line x1="300" y1="0" x2="300" y2="250" stroke="#2a1c10" stroke-width="3"/>
+      <line x1="1300" y1="0" x2="1300" y2="250" stroke="#2a1c10" stroke-width="3"/>
+      <circle cx="300" cy="270" r="220" fill="url(#bk-lampe)" class="flackern"/>
+      <circle cx="1300" cy="270" r="200" fill="url(#bk-lampe)" class="flackern" style="animation-delay:-1.7s"/>
+      <ellipse cx="300" cy="260" rx="52" ry="26" fill="#3a2a18"/>
+      <ellipse cx="1300" cy="260" rx="52" ry="26" fill="#3a2a18"/>
+    </g>
+    <!-- Rednerpult -->
+    <g fill="#0a0705">
+      <rect x="740" y="600" width="120" height="160"/>
+      <rect x="720" y="588" width="160" height="20"/>
+    </g>
+    <!-- Die Säule -->
+    <rect x="770" y="120" width="72" height="620" fill="#221708"/>
+    <rect x="778" y="120" width="22" height="620" fill="#3b2a17"/>
+    <rect x="762" y="100" width="88" height="26" fill="#2a1d0f"/>
+    <rect x="758" y="730" width="96" height="30" fill="#2a1d0f"/>
+    <!-- Holzklappe in der Säule -->
+    <rect class="klappe" x="784" y="330" width="46" height="90" fill="#191006" stroke="#C8A15A" stroke-width="1.5" opacity="0.55"/>
+    <!-- Tische -->
+    <g fill="#0a0705" opacity="0.9">
+      <rect x="60" y="770" width="360" height="18" rx="4"/>
+      <rect x="480" y="800" width="420" height="18" rx="4"/>
+      <rect x="1000" y="762" width="380" height="18" rx="4"/>
+      <rect x="1180" y="820" width="400" height="18" rx="4"/>
+    </g>
+    ${partikel(55, 11, "staub", 0.7, 2.4)}
+    <rect width="1600" height="900" fill="#000" opacity="0.12"/>
+  </svg>`,
+
+  /* II — Smolensk, Flug nach Ostpreußen ---------------------------------- */
+  smolensk: () => `
+  <svg viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+    <defs>
+      <linearGradient id="sm-himmel" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#101a24"/>
+        <stop offset="45%" stop-color="#31404c"/>
+        <stop offset="78%" stop-color="#6a7078"/>
+        <stop offset="100%" stop-color="#8c8b84"/>
+      </linearGradient>
+      <radialGradient id="sm-sonne" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#e8dcc4" stop-opacity="0.9"/>
+        <stop offset="100%" stop-color="#e8dcc4" stop-opacity="0"/>
+      </radialGradient>
+    </defs>
+    <rect width="1600" height="900" fill="url(#sm-himmel)"/>
+    <circle cx="1180" cy="600" r="230" fill="url(#sm-sonne)"/>
+    <circle cx="1180" cy="600" r="46" fill="#e6dcc6" opacity="0.75"/>
+    <!-- Wolkenbänder -->
+    <g fill="#2a3742" opacity="0.55">
+      <rect x="-50" y="300" width="1700" height="26" rx="13"/>
+      <rect x="-50" y="368" width="1700" height="16" rx="8"/>
+      <rect x="200" y="430" width="1200" height="12" rx="6"/>
+    </g>
+    <!-- Horizont / Schneefeld -->
+    <path d="M0 660 Q400 630 800 655 T1600 645 V900 H0 Z" fill="#9a9a91"/>
+    <path d="M0 700 Q500 675 1000 700 T1600 690 V900 H0 Z" fill="#b9b8ad"/>
+    ${baumreihe(668, 90, "#1c242a", 3, 34)}
+    <!-- Fw 200 Condor -->
+    <g class="flugzeug" transform="translate(1010 250)">
+      <g transform="scale(1.25)">
+        <path d="M0 0 L210 0 L246 9 L250 16 L214 22 L20 22 L-6 12 Z" fill="#1b2228"/>
+        <path d="M92 4 L120 -74 L136 -74 L126 4 Z" fill="#141a1f"/>
+        <path d="M92 18 L118 86 L134 86 L126 18 Z" fill="#232c33"/>
+        <path d="M196 2 L226 -36 L238 -36 L226 2 Z" fill="#141a1f"/>
+        <circle cx="118" cy="-40" r="9" fill="#0e1216"/>
+        <circle cx="126" cy="52" r="9" fill="#0e1216"/>
+        <rect x="20" y="4" width="60" height="7" rx="3" fill="#39434a"/>
+      </g>
+    </g>
+    ${partikel(90, 23, "schnee", 1, 3)}
+    <rect width="1600" height="900" fill="#0d1116" opacity="0.22"/>
+  </svg>`,
+
+  /* III — Winterlager bei Nacht ------------------------------------------ */
+  winter: () => `
+  <svg viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+    <defs>
+      <linearGradient id="wi-himmel" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#070c14"/>
+        <stop offset="60%" stop-color="#131d2b"/>
+        <stop offset="100%" stop-color="#27303a"/>
+      </linearGradient>
+      <linearGradient id="wi-strahl" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#dfe8f5" stop-opacity="0.34"/>
+        <stop offset="100%" stop-color="#dfe8f5" stop-opacity="0"/>
+      </linearGradient>
+    </defs>
+    <rect width="1600" height="900" fill="url(#wi-himmel)"/>
+    <!-- Suchscheinwerfer -->
+    <g class="suchlicht" style="transform-origin:1420px 820px">
+      <path d="M1420 820 L1120 -120 L1330 -140 Z" fill="url(#wi-strahl)"/>
+    </g>
+    ${baumreihe(600, 150, "#0b1118", 5, 26)}
+    <!-- Baracken -->
+    <g>
+      <path d="M180 600 L420 520 L660 600 V760 H180 Z" fill="#111821"/>
+      <rect x="200" y="600" width="440" height="150" fill="#0d141c"/>
+      <rect x="250" y="640" width="46" height="52" fill="#C8A15A" opacity="0.45"/>
+      <rect x="340" y="640" width="46" height="52" fill="#C8A15A" opacity="0.2"/>
+      <rect x="520" y="640" width="46" height="52" fill="#C8A15A" opacity="0.38"/>
+      <path d="M860 640 L1080 570 L1300 640 V780 H860 Z" fill="#0f161e"/>
+      <rect x="880" y="640" width="400" height="140" fill="#0b1119"/>
+      <rect x="1080" y="676" width="44" height="50" fill="#C8A15A" opacity="0.3"/>
+    </g>
+    <!-- Schneefeld -->
+    <path d="M0 740 Q400 715 800 740 T1600 730 V900 H0 Z" fill="#2c3742"/>
+    <path d="M0 790 Q500 768 1000 792 T1600 780 V900 H0 Z" fill="#3d4956"/>
+    <!-- Zaunpfähle -->
+    <g stroke="#0a0f15" stroke-width="6">
+      ${Array.from({ length: 12 }, (_, i) => `<line x1="${60 + i * 140}" y1="800" x2="${60 + i * 140}" y2="700"/>`).join("")}
+      <line x1="40" y1="726" x2="1580" y2="716" stroke-width="2"/>
+      <line x1="40" y1="756" x2="1580" y2="748" stroke-width="2"/>
+    </g>
+    ${partikel(120, 31, "schnee", 1.2, 3.4)}
+    <rect width="1600" height="900" fill="#050a12" opacity="0.3"/>
+  </svg>`,
+
+  /* IV — Gut Schmenzin in Pommern, Dämmerung ---------------------------- */
+  schmenzin: () => `
+  <svg viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+    <defs>
+      <linearGradient id="sz-himmel" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#121822"/>
+        <stop offset="55%" stop-color="#2e3542"/>
+        <stop offset="85%" stop-color="#6d6558"/>
+        <stop offset="100%" stop-color="#8a7a62"/>
+      </linearGradient>
+      <radialGradient id="sz-fenster" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#ffcf80" stop-opacity="0.7"/>
+        <stop offset="100%" stop-color="#ffcf80" stop-opacity="0"/>
+      </radialGradient>
+    </defs>
+    <rect width="1600" height="900" fill="url(#sz-himmel)"/>
+    <!-- kahle Bäume -->
+    <g stroke="#0d1219" fill="none" stroke-linecap="round">
+      <g stroke-width="10">
+        <path d="M230 760 V520"/><path d="M230 600 L150 520"/><path d="M230 620 L318 528"/>
+        <path d="M230 540 L176 470"/><path d="M230 552 L292 476"/>
+      </g>
+      <g stroke-width="8">
+        <path d="M1420 780 V540"/><path d="M1420 620 L1340 545"/><path d="M1420 640 L1500 556"/>
+        <path d="M1420 562 L1372 500"/><path d="M1420 574 L1476 506"/>
+      </g>
+    </g>
+    <!-- Gutshaus -->
+    <g>
+      <path d="M560 560 L860 460 L1160 560 Z" fill="#171c25"/>
+      <rect x="600" y="556" width="520" height="220" fill="#1b212b"/>
+      <rect x="826" y="640" width="68" height="136" fill="#0d1219"/>
+      <circle cx="860" cy="596" r="110" fill="url(#sz-fenster)"/>
+      <g fill="#0e131b">
+        ${[640, 712, 968, 1040].map((x) => `<rect x="${x}" y="612" width="48" height="80" rx="3"/>`).join("")}
+      </g>
+      <rect class="fensterlicht" x="840" y="612" width="48" height="80" rx="3" fill="#C8A15A" opacity="0.8"/>
+      <rect x="600" y="548" width="520" height="14" fill="#10151d"/>
+    </g>
+    <!-- Feldweg -->
+    <path d="M0 900 L640 776 H1000 L1600 900 Z" fill="#4b4335"/>
+    <path d="M0 900 Q700 800 1600 900 Z" fill="#3a3428"/>
+    ${partikel(30, 47, "staub", 0.8, 2)}
+    <rect width="1600" height="900" fill="#0a0d14" opacity="0.28"/>
+  </svg>`,
+
+  /* V — Schloss Klessheim bei Salzburg, Juli ---------------------------- */
+  klessheim: () => `
+  <svg viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+    <defs>
+      <linearGradient id="kl-himmel" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#6d7f8e"/>
+        <stop offset="50%" stop-color="#a9aea6"/>
+        <stop offset="100%" stop-color="#d6cdb8"/>
+      </linearGradient>
+      <linearGradient id="kl-fassade" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#cdbfa4"/>
+        <stop offset="100%" stop-color="#8d8271"/>
+      </linearGradient>
+    </defs>
+    <rect width="1600" height="900" fill="url(#kl-himmel)"/>
+    <!-- Alpenkette -->
+    <path d="M-50 520 L180 330 L320 430 L520 250 L700 460 L900 340 L1100 470 L1300 300 L1650 520 V900 H-50 Z" fill="#6f7c85" opacity="0.55"/>
+    <path d="M-50 600 L220 430 L420 540 L640 400 L880 560 L1120 450 L1380 570 L1650 470 V900 H-50 Z" fill="#57636c" opacity="0.6"/>
+    <!-- Schlossfassade -->
+    <g>
+      <rect x="240" y="470" width="1120" height="300" fill="url(#kl-fassade)"/>
+      <path d="M700 470 L800 392 L900 470 Z" fill="#b5a68b"/>
+      <rect x="700" y="462" width="200" height="16" fill="#9d9079"/>
+      <rect x="240" y="458" width="1120" height="18" fill="#b7a88d"/>
+      <rect x="240" y="758" width="1120" height="16" fill="#7b7161"/>
+      <!-- Fenster -->
+      <g fill="#2b2a26">
+        ${[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((i) => `
+          <rect x="${292 + i * 108}" y="512" width="56" height="92" rx="26"/>
+          <rect x="${292 + i * 108}" y="636" width="56" height="86" rx="6"/>`).join("")}
+      </g>
+      <!-- Säulen am Portal -->
+      <g fill="#ddd0b6">
+        <rect x="742" y="596" width="22" height="176"/>
+        <rect x="836" y="596" width="22" height="176"/>
+        <rect x="730" y="586" width="46" height="14"/>
+        <rect x="824" y="586" width="46" height="14"/>
+      </g>
+      <rect x="774" y="616" width="52" height="156" rx="26" fill="#1f1e1b"/>
+    </g>
+    <!-- Vorplatz -->
+    <rect y="770" width="1600" height="130" fill="#a09a86"/>
+    <g stroke="#8c8672" stroke-width="2">
+      ${Array.from({ length: 9 }, (_, i) => `<line x1="${i * 200}" y1="770" x2="${i * 200 - 120}" y2="900"/>`).join("")}
+    </g>
+    <!-- Sommerdunst -->
+    <rect class="dunst" width="1600" height="900" fill="#e8e0cc" opacity="0.14"/>
+    ${partikel(26, 59, "staub", 0.8, 2.2)}
+  </svg>`,
+
+  /* VI — Wolfsschanze, Rastenburg --------------------------------------- */
+  wolfsschanze: () => `
+  <svg viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+    <defs>
+      <linearGradient id="wo-himmel" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#1a2118"/>
+        <stop offset="60%" stop-color="#38402c"/>
+        <stop offset="100%" stop-color="#5d6244"/>
+      </linearGradient>
+      <linearGradient id="wo-licht" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="#f3e2a8" stop-opacity="0.22"/>
+        <stop offset="100%" stop-color="#f3e2a8" stop-opacity="0"/>
+      </linearGradient>
+    </defs>
+    <rect width="1600" height="900" fill="url(#wo-himmel)"/>
+    <!-- Kiefernwald in drei Tiefen -->
+    ${baumreihe(560, 260, "#202a1e", 13, 16)}
+    ${baumreihe(640, 330, "#161f16", 17, 13)}
+    <!-- Lichtschneise -->
+    <path d="M600 200 L1100 200 L1400 900 L300 900 Z" fill="url(#wo-licht)"/>
+    <!-- Lagebaracke -->
+    <g>
+      <path d="M520 640 L800 548 L1080 640 Z" fill="#3b3526"/>
+      <rect x="548" y="636" width="504" height="180" fill="#2d281c"/>
+      <g fill="#0f120c">
+        ${[0, 1, 2, 3, 4].map((i) => `<rect x="${584 + i * 92}" y="672" width="56" height="66"/>`).join("")}
+      </g>
+      <rect x="800" y="700" width="58" height="116" fill="#1a1710"/>
+      <!-- Holzbretter -->
+      <g stroke="#241f16" stroke-width="2">
+        ${Array.from({ length: 7 }, (_, i) => `<line x1="548" y1="${648 + i * 24}" x2="1052" y2="${648 + i * 24}"/>`).join("")}
+      </g>
+    </g>
+    <!-- Bunkerblock rechts -->
+    <g fill="#2a2c24">
+      <rect x="1180" y="600" width="380" height="230"/>
+      <rect x="1160" y="586" width="420" height="26"/>
+      <rect x="1280" y="690" width="70" height="140" fill="#15170f"/>
+    </g>
+    <!-- Waldboden -->
+    <path d="M0 800 Q400 780 800 802 T1600 792 V900 H0 Z" fill="#3a3a28"/>
+    <path d="M0 850 Q500 830 1000 854 T1600 844 V900 H0 Z" fill="#2c2d1f"/>
+    ${partikel(40, 71, "staub", 0.7, 2.4)}
+    <rect width="1600" height="900" fill="#0b0f0a" opacity="0.24"/>
+  </svg>`,
+
+  /* Abspann — Hof des Bendlerblocks bei Nacht --------------------------- */
+  bendlerblock: () => `
+  <svg viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+    <defs>
+      <linearGradient id="be-nacht" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#05070b"/>
+        <stop offset="100%" stop-color="#141821"/>
+      </linearGradient>
+      <radialGradient id="be-lampe" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#e8dcbb" stop-opacity="0.55"/>
+        <stop offset="100%" stop-color="#e8dcbb" stop-opacity="0"/>
+      </radialGradient>
+    </defs>
+    <rect width="1600" height="900" fill="url(#be-nacht)"/>
+    <!-- Hofwände -->
+    <rect x="0" y="180" width="1600" height="600" fill="#0e1119"/>
+    <g fill="#141822">
+      ${Array.from({ length: 8 }, (_, i) => `
+        <rect x="${70 + i * 190}" y="250" width="70" height="120" rx="4"/>
+        <rect x="${70 + i * 190}" y="420" width="70" height="120" rx="4"/>
+        <rect x="${70 + i * 190}" y="590" width="70" height="120" rx="4"/>`).join("")}
+    </g>
+    <!-- Scheinwerferkegel zweier Lastwagen -->
+    <g opacity="0.85">
+      <circle cx="520" cy="700" r="260" fill="url(#be-lampe)" class="flackern"/>
+      <circle cx="1080" cy="720" r="240" fill="url(#be-lampe)" class="flackern" style="animation-delay:-2.3s"/>
+    </g>
+    <rect y="780" width="1600" height="120" fill="#0a0d14"/>
+    <rect y="780" width="1600" height="6" fill="#1b2028"/>
+    ${partikel(34, 83, "staub", 0.7, 2.2)}
+  </svg>`
+};
+
+if (typeof module !== "undefined") { module.exports = SCENES; }
+
+
+/*
+ * game.js — Spiellogik für "Dreizehn Minuten"
+ *
+ * Ablauf: Startbild → je Kapitel (Aktendeckel → Entscheidungsszenen → Epilog) → Abspann.
+ * Die historisch belegte Entscheidung ist immer die richtige. Falsche Entscheidungen
+ * kosten Punkte und eine der drei Spuren; sind alle drei weg, beginnt das Kapitel neu.
+ */
+
+const PUNKTE_PRO_SZENE = 120;
+const ABZUG_PRO_FEHLER = 40;
+const MINDESTPUNKTE     = 20;
+const BONUS_KAPITEL     = 100;   // Kapitel ohne Fehler
+const BONUS_AKTE        = 300;   // gesamtes Spiel ohne Fehler
+const SPUREN            = 3;
+const SPEICHER          = "dreizehn-minuten.rangliste";
+
+const spiel = {
+  name: "",
+  kapitel: 0,
+  szene: 0,
+  punkte: 0,
+  kapitelPunkte: 0,
+  spuren: SPUREN,
+  fehler: 0,
+  kapitelFehler: 0,
+  fehlversuche: 0,     // in der aktuellen Szene
+  start: 0,
+  lauft: false
+};
+
+/* --- Werkzeug -------------------------------------------------------- */
+
+const $ = (sel) => document.querySelector(sel);
+
+function sicher(text) {
+  return String(text).replace(/[&<>"']/g, (z) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[z]));
+}
+
+function zeitString(ms) {
+  const s = Math.max(0, Math.round(ms / 1000));
+  return `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
+}
+
+function setzeSzene(name) {
+  const box = $("#szene");
+  box.innerHTML = (SCENES[name] || SCENES.titel)();
+  box.classList.remove("wechsel");
+  void box.offsetWidth;            // Neustart der Einblend-Animation erzwingen
+  box.classList.add("wechsel");
+}
+
+function male(html) {
+  $("#inhalt").innerHTML = html;
+  $("#inhalt").scrollIntoView({ block: "nearest" });
+}
+
+/* --- Kopfleiste ------------------------------------------------------ */
+
+function zeichneHud(sichtbar) {
+  const hud = $("#hud");
+  hud.hidden = !sichtbar;
+  if (!sichtbar) return;
+
+  const k = STORY.kapitel[spiel.kapitel];
+  const punkte = spiel.punkte + spiel.kapitelPunkte;
+
+  hud.innerHTML = `
+    <span class="hud__akte">${k ? sicher(k.akte) : "AKTE"}</span>
+    <span class="zeitleiste" role="img" aria-label="Fortschritt: Akte ${spiel.kapitel + 1} von ${STORY.kapitel.length}">
+      ${STORY.kapitel.map((_, i) => `<span class="zeitleiste__punkt
+        ${i < spiel.kapitel ? "erledigt" : ""} ${i === spiel.kapitel ? "aktiv" : ""}"></span>`).join("")}
+    </span>
+    <span class="hud__rest">
+      <span class="leben" role="img" aria-label="Verbleibende Spuren: ${spiel.spuren} von ${SPUREN}">
+        ${Array.from({ length: SPUREN }, (_, i) =>
+          `<span class="leben__zeichen ${i < spiel.spuren ? "" : "weg"}"></span>`).join("")}
+      </span>
+      <span class="punkte">Punkte <b>${punkte}</b></span>
+    </span>`;
+}
+
+/* --- Startbild ------------------------------------------------------- */
+
+function zeigeStart() {
+  setzeSzene("titel");
+  zeichneHud(false);
+  male(`
+    <article class="karte karte--weit titelblock">
+      <p class="eyebrow"><span>Geschichte interaktiv</span><span>1939 – 1944</span><span>6 Akten</span></p>
+      <h1>Dreizehn<br>Minuten</h1>
+      <p class="untertitel">Sechs Attentate auf Hitler — und warum jedes scheiterte</p>
+      <p class="lage">Du übernimmst nacheinander die Rolle von sechs Menschen, die versucht haben,
+      Hitler zu töten. Vor dir liegen ihre Entscheidungen: über Sprengstoff, Tarnung, Termine,
+      über den eigenen Tod. <strong>Historisch richtig entschieden heißt hier: so, wie es damals
+      wirklich entschieden wurde.</strong> Wer die Geschichte kennt, kommt durch die Akte —
+      und überlebt jedes Attentat genauso, wie Hitler es damals überlebte.</p>
+      <ul class="regeln">
+        <li><span class="marker">01</span><span><b>Sechs Akten, 24 Entscheidungen.</b> Jede richtige Entscheidung bringt bis zu ${PUNKTE_PRO_SZENE} Punkte.</span></li>
+        <li><span class="marker">02</span><span><b>Drei Spuren pro Akte.</b> Jeder Fehlversuch kostet eine Spur und ${ABZUG_PRO_FEHLER} Punkte. Du darfst weiterraten — aber es wird teuer.</span></li>
+        <li><span class="marker">03</span><span><b>Sind alle Spuren weg,</b> beginnt die Akte von vorn und die Punkte dieser Akte verfallen.</span></li>
+        <li><span class="marker">04</span><span><b>Fehlerfreie Akte:</b> +${BONUS_KAPITEL} Punkte. Fehlerfreies Spiel: +${BONUS_AKTE} Punkte.</span></li>
+        <li><span class="marker">05</span><span><b>Nach jeder Entscheidung</b> erfährst du, was wirklich geschah. Lies es — die nächste Akte baut darauf auf.</span></li>
+      </ul>
+      <div class="feld">
+        <label for="name">Name für die Rangliste</label>
+        <input id="name" type="text" maxlength="22" placeholder="z. B. Mia K." autocomplete="off">
+      </div>
+      <div class="knopfreihe">
+        <button class="knopf" id="los">Akte I öffnen</button>
+        <button class="knopf knopf--leise" id="rangliste-zeigen">Rangliste</button>
+      </div>
+      <p class="tastenhinweis">Tastatur: 1 – 3 wählt eine Option, Enter blättert weiter.</p>
+    </article>`);
+
+  $("#name").value = localStorage.getItem("dreizehn-minuten.name") || "";
+  $("#los").addEventListener("click", spielStarten);
+  $("#name").addEventListener("keydown", (e) => { if (e.key === "Enter") spielStarten(); });
+  $("#rangliste-zeigen").addEventListener("click", () => zeigeRangliste(null));
+}
+
+function spielStarten() {
+  const name = ($("#name")?.value || "").trim();
+  spiel.name = name || "Unbekannt";
+  try { localStorage.setItem("dreizehn-minuten.name", spiel.name); } catch (e) { /* Privatmodus */ }
+  Object.assign(spiel, {
+    kapitel: 0, szene: 0, punkte: 0, kapitelPunkte: 0, spuren: SPUREN,
+    fehler: 0, kapitelFehler: 0, fehlversuche: 0, start: Date.now(), lauft: true
+  });
+  zeigeKapitel();
+}
+
+/* --- Aktendeckel ----------------------------------------------------- */
+
+function zeigeKapitel() {
+  const k = STORY.kapitel[spiel.kapitel];
+  spiel.szene = 0;
+  spiel.spuren = SPUREN;
+  spiel.kapitelPunkte = 0;
+  spiel.kapitelFehler = 0;
+  setzeSzene(k.szene);
+  zeichneHud(true);
+  male(`
+    <article class="karte">
+      <p class="eyebrow"><span>Akte ${k.nr}</span><span>${sicher(k.datum)}</span><span>${sicher(k.ort)}</span></p>
+      <h2>${sicher(k.person.split(",")[0])}</h2>
+      <div class="daten">
+        <div><span class="k">Datum</span><span class="w">${sicher(k.datum)}</span></div>
+        <div><span class="k">Ort</span><span class="w">${sicher(k.ort)}</span></div>
+        <div><span class="k">Deine Rolle</span><span class="w">${sicher(k.person)}</span></div>
+      </div>
+      <p class="lage">${k.intro}</p>
+      <div class="knopfreihe"><button class="knopf" id="weiter">Erste Entscheidung</button></div>
+    </article>`);
+  $("#weiter").addEventListener("click", zeigeSzene);
+}
+
+/* --- Entscheidungsszene ---------------------------------------------- */
+
+function zeigeSzene() {
+  const k = STORY.kapitel[spiel.kapitel];
+  const s = k.szenen[spiel.szene];
+  spiel.fehlversuche = 0;
+  zeichneHud(true);
+  male(`
+    <article class="karte">
+      <p class="eyebrow">
+        <span>Akte ${k.nr} · ${sicher(k.kurzdatum)}</span>
+        <span>Entscheidung ${spiel.szene + 1} von ${k.szenen.length}</span>
+      </p>
+      <p class="lage">${s.lage}</p>
+      <p class="frage">${s.frage}</p>
+      <ul class="optionen" id="optionen">
+        ${s.optionen.map((o, i) => `
+          <li><button class="option" data-i="${i}">
+            <span class="option__nr">${i + 1}</span>
+            <span>${o.t}</span>
+          </button></li>`).join("")}
+      </ul>
+      <div id="rueckmeldung"></div>
+    </article>`);
+
+  $("#optionen").addEventListener("click", (e) => {
+    const knopf = e.target.closest(".option");
+    if (knopf && !knopf.disabled) waehle(Number(knopf.dataset.i));
+  });
+}
+
+function waehle(i) {
+  const k = STORY.kapitel[spiel.kapitel];
+  const s = k.szenen[spiel.szene];
+  const o = s.optionen[i];
+  const knopf = document.querySelector(`.option[data-i="${i}"]`);
+
+  if (o.ok) {
+    document.querySelectorAll(".option").forEach((b) => { b.disabled = true; });
+    knopf.classList.add("richtig");
+    knopf.disabled = true;
+
+    const gewinn = Math.max(MINDESTPUNKTE, PUNKTE_PRO_SZENE - spiel.fehlversuche * ABZUG_PRO_FEHLER);
+    spiel.kapitelPunkte += gewinn;
+    const letzte = spiel.szene === k.szenen.length - 1;
+
+    $("#rueckmeldung").innerHTML = `
+      <div class="rueckmeldung">
+        <span class="marke marke--ok">So war es · +${gewinn} Punkte</span>
+        <p>${o.fb}</p>
+        ${s.quelle ? `<p class="quelle">Quellennotiz: ${s.quelle}</p>` : ""}
+        <div class="knopfreihe">
+          <button class="knopf" id="weiter">${letzte ? "Akte abschließen" : "Weiter"}</button>
+        </div>
+      </div>`;
+    $("#weiter").addEventListener("click", () => {
+      if (letzte) { zeigeEpilog(); } else { spiel.szene++; zeigeSzene(); }
+    });
+    zeichneHud(true);
+    return;
+  }
+
+  /* Falsche Entscheidung */
+  knopf.classList.add("falsch");
+  knopf.disabled = true;
+  spiel.fehlversuche++;
+  spiel.fehler++;
+  spiel.kapitelFehler++;
+  spiel.spuren--;
+  zeichneHud(true);
+
+  $("#rueckmeldung").innerHTML = `
+    <div class="rueckmeldung">
+      <span class="marke marke--nein">So war es nicht · eine Spur verloren</span>
+      <p>${o.fb}</p>
+      ${spiel.spuren > 0
+        ? `<p class="leise">Du hast noch ${spiel.spuren} ${spiel.spuren === 1 ? "Spur" : "Spuren"}. Entscheide neu.</p>`
+        : `<div class="knopfreihe"><button class="knopf" id="neustart-kapitel">Akte ${k.nr} neu aufrollen</button></div>`}
+    </div>`;
+
+  if (spiel.spuren <= 0) {
+    document.querySelectorAll(".option").forEach((b) => { b.disabled = true; });
+    $("#neustart-kapitel").addEventListener("click", zeigeGescheitert);
+  }
+}
+
+/* --- Kapitel gescheitert --------------------------------------------- */
+
+function zeigeGescheitert() {
+  const k = STORY.kapitel[spiel.kapitel];
+  const verfallen = spiel.kapitelPunkte;
+  male(`
+    <article class="karte">
+      <p class="eyebrow"><span>Akte ${k.nr}</span><span>Spur abgerissen</span></p>
+      <h2>Die Spur reißt ab</h2>
+      <p class="lage">Drei Fehlentscheidungen — in der Wirklichkeit hätte das Verhaftung bedeutet,
+      für dich und für alle, die von deinem Plan wussten. Die Akte wird neu aufgerollt.</p>
+      <p class="leise">${verfallen} Punkte aus dieser Akte verfallen. Deine bisherigen
+      ${spiel.punkte} Punkte aus abgeschlossenen Akten bleiben.</p>
+      <div class="knopfreihe"><button class="knopf" id="weiter">Akte ${k.nr} von vorn</button></div>
+    </article>`);
+  $("#weiter").addEventListener("click", zeigeKapitel);
+}
+
+/* --- Epilog eines Kapitels ------------------------------------------- */
+
+function zeigeEpilog() {
+  const k = STORY.kapitel[spiel.kapitel];
+  let bonus = 0;
+  if (spiel.kapitelFehler === 0) { bonus = BONUS_KAPITEL; spiel.kapitelPunkte += bonus; }
+  spiel.punkte += spiel.kapitelPunkte;
+  spiel.kapitelPunkte = 0;
+  zeichneHud(true);
+
+  const letzte = spiel.kapitel === STORY.kapitel.length - 1;
+  male(`
+    <article class="karte">
+      <p class="eyebrow"><span>Akte ${k.nr} · Ausgang</span><span>${sicher(k.kurzdatum)}</span></p>
+      <h2>${sicher(k.epilog.titel)}</h2>
+      <p class="lage">${k.epilog.text}</p>
+      <ul class="fakten">${k.epilog.fakten.map((f) => `<li><span></span><span>${f}</span></li>`).join("")}</ul>
+      ${bonus ? `<p class="quelle">Akte ohne Fehlentscheidung abgeschlossen: +${bonus} Punkte.</p>` : ""}
+      <div class="knopfreihe">
+        <button class="knopf" id="weiter">${letzte ? "Auswertung" : "Akte " + STORY.kapitel[spiel.kapitel + 1].nr + " öffnen"}</button>
+        <span class="leise">Punkte gesamt: ${spiel.punkte}</span>
+      </div>
+    </article>`);
+  $("#weiter").addEventListener("click", () => {
+    if (letzte) { zeigeFinale(); } else { spiel.kapitel++; zeigeKapitel(); }
+  });
+}
+
+/* --- Abspann --------------------------------------------------------- */
+
+function zeigeFinale() {
+  const dauer = Date.now() - spiel.start;
+  let bonus = 0;
+  if (spiel.fehler === 0) { bonus = BONUS_AKTE; spiel.punkte += bonus; }
+  spiel.lauft = false;
+  setzeSzene("bendlerblock");
+  zeichneHud(false);
+
+  const eintrag = {
+    name: spiel.name,
+    punkte: spiel.punkte,
+    fehler: spiel.fehler,
+    sekunden: Math.round(dauer / 1000),
+    datum: new Date().toISOString().slice(0, 10)
+  };
+  const platz = speichereErgebnis(eintrag);
+
+  male(`
+    <article class="karte karte--weit">
+      <p class="eyebrow"><span>Auswertung</span><span>${sicher(spiel.name)}</span><span>${eintrag.datum}</span></p>
+      <h2>${sicher(STORY.fazit.titel)}</h2>
+      <div class="ergebnis">
+        <span class="ergebnis__zahl">${spiel.punkte}</span>
+        <div class="ergebnis__neben">
+          <span class="leise">Punkte · Platz ${platz} in der Rangliste dieses Rechners</span>
+          <span class="leise">Fehlentscheidungen: ${spiel.fehler} · Spielzeit: ${zeitString(dauer)}
+          ${bonus ? " · Fehlerfrei-Bonus: +" + bonus : ""}</span>
+        </div>
+      </div>
+      <p class="lage">${STORY.fazit.text}</p>
+      <blockquote class="zitat">${STORY.fazit.zitat}<cite>${sicher(STORY.fazit.zitatQuelle)}</cite></blockquote>
+      <div id="ranglistenbereich"></div>
+      <div class="knopfreihe">
+        <button class="knopf" id="nochmal">Noch einmal spielen</button>
+        <button class="knopf knopf--leise" id="drucken">Ergebnis drucken</button>
+      </div>
+    </article>`);
+
+  zeichneRangliste($("#ranglistenbereich"), eintrag);
+  $("#nochmal").addEventListener("click", zeigeStart);
+  $("#drucken").addEventListener("click", () => window.print());
+}
+
+/* --- Rangliste ------------------------------------------------------- */
+
+function ladeRangliste() {
+  try { return JSON.parse(localStorage.getItem(SPEICHER) || "[]"); }
+  catch (e) { return []; }
+}
+
+function speichereErgebnis(eintrag) {
+  const liste = ladeRangliste();
+  eintrag.id = Date.now() + "-" + Math.random().toString(36).slice(2, 7);
+  liste.push(eintrag);
+  liste.sort((a, b) => b.punkte - a.punkte || a.sekunden - b.sekunden);
+  const gekuerzt = liste.slice(0, 50);
+  try { localStorage.setItem(SPEICHER, JSON.stringify(gekuerzt)); } catch (e) { /* Privatmodus */ }
+  return gekuerzt.findIndex((e2) => e2.id === eintrag.id) + 1 || "—";
+}
+
+function zeichneRangliste(ziel, eigener) {
+  const liste = ladeRangliste().slice(0, 10);
+  if (!liste.length) {
+    ziel.innerHTML = `<p class="leise">Noch keine Ergebnisse auf diesem Rechner.</p>`;
+    return;
+  }
+  ziel.innerHTML = `
+    <h3>Rangliste</h3>
+    <div class="tabellenhuelle">
+      <table class="rangliste">
+        <thead><tr><th>Pl.</th><th>Name</th><th>Punkte</th><th>Fehler</th><th>Zeit</th><th>Datum</th></tr></thead>
+        <tbody>
+          ${liste.map((e, i) => `
+            <tr class="${eigener && e.id === eigener.id ? "selbst" : ""}">
+              <td>${i + 1}</td>
+              <td>${sicher(e.name)}</td>
+              <td>${e.punkte}</td>
+              <td>${e.fehler}</td>
+              <td>${zeitString(e.sekunden * 1000)}</td>
+              <td>${sicher(e.datum)}</td>
+            </tr>`).join("")}
+        </tbody>
+      </table>
+    </div>`;
+}
+
+function zeigeRangliste() {
+  setzeSzene("titel");
+  zeichneHud(false);
+  male(`
+    <article class="karte karte--weit">
+      <p class="eyebrow"><span>Rangliste</span><span>Dieser Rechner</span></p>
+      <h2>Wer kam am weitesten durch die Akten?</h2>
+      <div id="ranglistenbereich"></div>
+      <div class="knopfreihe">
+        <button class="knopf" id="zurueck">Zurück</button>
+        <button class="knopf knopf--leise" id="loeschen">Rangliste löschen</button>
+      </div>
+    </article>`);
+  zeichneRangliste($("#ranglistenbereich"), null);
+  $("#zurueck").addEventListener("click", zeigeStart);
+  $("#loeschen").addEventListener("click", () => {
+    if (window.confirm("Alle gespeicherten Ergebnisse auf diesem Rechner löschen?")) {
+      try { localStorage.removeItem(SPEICHER); } catch (e) { /* Privatmodus */ }
+      zeigeRangliste();
+    }
+  });
+}
+
+/* --- Tastatur -------------------------------------------------------- */
+
+document.addEventListener("keydown", (e) => {
+  if (e.target instanceof HTMLInputElement) return;
+  if (e.key >= "1" && e.key <= "4") {
+    const knopf = document.querySelector(`.option[data-i="${Number(e.key) - 1}"]`);
+    if (knopf && !knopf.disabled) { e.preventDefault(); waehle(Number(e.key) - 1); }
+  }
+  if (e.key === "Enter") {
+    const weiter = $("#weiter");
+    if (weiter) { e.preventDefault(); weiter.click(); }
+  }
+});
+
+/* --- Start ----------------------------------------------------------- */
+
+document.addEventListener("DOMContentLoaded", zeigeStart);
+
+</script>
+</body>
+</html>
