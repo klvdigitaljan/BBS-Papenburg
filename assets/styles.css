@@ -30,6 +30,7 @@ html, body {
   margin: 0;
   padding: 0;
   min-height: 100%;
+  -webkit-text-size-adjust: 100%;
   background: var(--tinte);
   color: var(--papier);
   font-family: var(--schrift-text);
@@ -83,6 +84,7 @@ html, body {
   position: relative;
   z-index: 1;
   min-height: 100vh;
+  min-height: 100dvh;      /* Safari auf dem iPad: Adress- und Tableiste abziehen */
   display: flex;
   flex-direction: column;
   padding: 0 max(16px, 2.2vw);
@@ -218,6 +220,10 @@ strong { color: var(--messing-2); font-weight: 600; }
 .optionen { display: flex; flex-direction: column; gap: var(--s2); margin: 0; padding: 0; list-style: none; }
 
 .option {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
   display: grid;
   grid-template-columns: 2rem 1fr;
   gap: var(--s2);
@@ -232,7 +238,10 @@ strong { color: var(--messing-2); font-weight: 600; }
   cursor: pointer;
   transition: background .18s, border-color .18s, transform .18s;
 }
-.option:hover:not(:disabled) { background: var(--flaeche-2); border-color: rgba(200,161,90,.55); transform: translateX(3px); }
+@media (hover: hover) {
+  .option:hover:not(:disabled) { background: var(--flaeche-2); border-color: rgba(200,161,90,.55); transform: translateX(3px); }
+}
+.option:active:not(:disabled) { background: var(--flaeche-2); border-color: rgba(200,161,90,.55); }
 .option:focus-visible { outline: 2px solid var(--messing-2); outline-offset: 2px; }
 .option:disabled { cursor: default; opacity: .55; }
 .option__nr {
@@ -282,6 +291,10 @@ strong { color: var(--messing-2); font-weight: 600; }
 
 .knopfreihe { display: flex; flex-wrap: wrap; gap: var(--s2); margin-top: var(--s3); align-items: center; }
 .knopf {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
   font-family: var(--schrift-titel);
   font-size: 1.05rem;
   letter-spacing: .08em;
@@ -293,10 +306,15 @@ strong { color: var(--messing-2); font-weight: 600; }
   cursor: pointer;
   transition: background .18s, transform .18s;
 }
-.knopf:hover { background: var(--messing-2); transform: translateY(-1px); }
+@media (hover: hover) {
+  .knopf:hover { background: var(--messing-2); transform: translateY(-1px); }
+}
+.knopf:active { background: var(--messing-2); }
 .knopf:focus-visible { outline: 2px solid var(--papier); outline-offset: 2px; }
 .knopf--leise { background: transparent; color: var(--messing); }
-.knopf--leise:hover { background: rgba(200,161,90,.14); color: var(--messing-2); }
+@media (hover: hover) {
+  .knopf--leise:hover { background: rgba(200,161,90,.14); color: var(--messing-2); }
+}
 
 /* --- Startbild ------------------------------------------------------- */
 
@@ -451,6 +469,12 @@ table.rangliste td:first-child { color: var(--messing); width: 2.4rem; }
   flex-wrap: wrap;
 }
 .tastenhinweis { font-family: var(--schrift-daten); font-size: .68rem; color: #5d646d; letter-spacing: .1em; margin-top: var(--s2); }
+
+@media (pointer: coarse) {
+  .option { padding: 1rem 1rem; }
+  .knopf  { padding: .7rem 1.5rem; }
+  .tastenhinweis { display: none; }   /* ohne Tastatur sinnlos */
+}
 
 @media (max-width: 640px) {
   .karte { padding: var(--s3); }

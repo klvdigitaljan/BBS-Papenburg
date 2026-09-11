@@ -28,28 +28,35 @@ const koerper = html
   .replace(/\s*<script src="assets\/[^"]+"><\/script>/g, "")
   .trim();
 
-const kopf = `${titel}\n${beschr}\n${fonts}\n<style>\n${css}\n</style>`;
+const apple = html.match(/<meta name="apple-mobile-web-app-capable"[\s\S]*?<link rel="icon"[^>]*>/)[0];
+const kopf = `${titel}\n${beschr}\n${apple}\n${fonts}\n<style>\n${css}\n</style>`;
 let rumpf = `${koerper}\n\n<script>\n${skript}\n</script>`;
 
-// Schullogo einbetten, damit die Einzeldatei ohne Ordner auskommt.
-const logoPfad = join(wurzel, "assets/logo.png");
-if (existsSync(logoPfad)) {
-  const daten = readFileSync(logoPfad).toString("base64");
-  rumpf = rumpf.replaceAll("assets/logo.png", `data:image/png;base64,${daten}`);
-  console.log(`Schullogo eingebettet (${Math.round(daten.length / 1024)} kB als Data-URI).`);
-} else {
-  console.log("Hinweis: assets/logo.png fehlt — das Spiel zeigt nur den Schriftzug.");
+// Bilder einbetten, damit die Einzeldatei ohne Ordner auskommt.
+function einbetten(text, pfad) {
+  const voll = join(wurzel, pfad);
+  if (!existsSync(voll)) {
+    console.log(`Hinweis: ${pfad} fehlt.`);
+    return text;
+  }
+  const daten = readFileSync(voll).toString("base64");
+  console.log(`${pfad} eingebettet (${Math.round(daten.length / 1024)} kB als Data-URI).`);
+  return text.replaceAll(pfad, `data:image/png;base64,${daten}`);
 }
 
+rumpf = einbetten(rumpf, "assets/logo.png");
+
 mkdirSync(join(wurzel, "dist"), { recursive: true });
+
+const kopfMitSymbol = einbetten(kopf, "assets/icon-180.png");
 
 writeFileSync(join(wurzel, "dist/hitler-attentaeter-spiel.html"),
 `<!doctype html>
 <html lang="de">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-${kopf}
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+${kopfMitSymbol}
 </head>
 <body>
 ${rumpf}
@@ -57,6 +64,6 @@ ${rumpf}
 </html>
 `);
 
-writeFileSync(join(wurzel, "dist/artifact.html"), `${kopf}\n\n${rumpf}\n`);
+writeFileSync(join(wurzel, "dist/artifact.html"), `${kopfMitSymbol}\n\n${rumpf}\n`);
 
 console.log("dist/hitler-attentaeter-spiel.html und dist/artifact.html gebaut.");
