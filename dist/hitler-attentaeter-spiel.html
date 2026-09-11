@@ -3,14 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Dreizehn Minuten</title>
-<meta name="description" content="Interaktives Geschichtsspiel über die sechs bekanntesten Attentate auf Hitler zwischen 1939 und 1944.">
+<title>Hitler-Attentäter-Spiel</title>
+<meta name="description" content="Interaktives Geschichtsspiel über die sechs bekanntesten Attentate auf Hitler zwischen 1939 und 1944. BBS Papenburg.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
 <style>
 /* =====================================================================
-   Dreizehn Minuten — Gestaltung
+   Hitler-Attentäter-Spiel — Gestaltung
    Dunkle Aktenfarben, DIN-nahe Schrift für Beschriftungen,
    Serifenschrift für die Erzählung, Monospace für Daten und Uhrzeiten.
    Das Spiel hat bewusst nur eine (dunkle) Erscheinung.
@@ -205,7 +205,7 @@ h1, h2, h3 {
   margin: 0 0 var(--s2);
   letter-spacing: .005em;
 }
-h1 { font-size: clamp(2.8rem, 9vw, 5rem); text-transform: uppercase; }
+h1 { font-size: clamp(2.3rem, 6.6vw, 3.9rem); text-transform: uppercase; }
 h2 { font-size: clamp(1.7rem, 4.4vw, 2.6rem); }
 h3 { font-size: 1.25rem; text-transform: uppercase; letter-spacing: .06em; }
 
@@ -478,6 +478,76 @@ table.rangliste td:first-child { color: var(--messing); width: 2.4rem; }
   }
 }
 
+/* --- Schulmarke (Logo + Schriftzug) ---------------------------------- */
+
+.schulmarke {
+  display: inline-flex;
+  align-items: center;
+  gap: .6rem;
+}
+.schullogo {
+  display: block;
+  height: 2.4rem;
+  width: auto;
+  max-width: 100%;
+  border-radius: 50%;
+  background: #f4f4f2;
+}
+.schulname {
+  display: flex;
+  flex-direction: column;
+  font-family: var(--schrift-titel);
+  font-size: .86rem;
+  line-height: 1.15;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+  color: var(--papier);
+}
+.schulname b {
+  font-weight: 400;
+  font-size: .68rem;
+  letter-spacing: .12em;
+  color: var(--gedaempft);
+}
+
+.schulmarke--gross {
+  display: flex;
+  width: 100%;
+  margin-bottom: var(--s3);
+  padding-bottom: var(--s3);
+  border-bottom: 1px solid var(--linie);
+}
+.schulmarke--gross .schullogo { height: 3.4rem; }
+.schulmarke--gross .schulname { font-size: 1rem; }
+
+.schulmarke--klein .schullogo { height: 1.6rem; }
+.schulmarke--klein .schulname { font-size: .66rem; letter-spacing: .1em; color: #5d646d; }
+.schulmarke--klein .schulname b { font-size: .58rem; }
+
+/* --- Druckfassung der Auswertung -------------------------------------- */
+
+@media print {
+  #szene, .hud, .fusszeile, .knopfreihe { display: none !important; }
+  html, body { background: #fff; color: #111; }
+  #buehne { padding: 0; }
+  main { padding: 0; display: block; }
+  .karte {
+    max-width: none;
+    background: #fff;
+    border: none;
+    border-left: 3px solid #8a6d2f;
+    box-shadow: none;
+    backdrop-filter: none;
+    animation: none;
+    padding: 0 0 0 1rem;
+  }
+  h2, .lage, .zitat, strong, .schulname { color: #111; }
+  .eyebrow, .leise, .schulname b { color: #555; }
+  .ergebnis__zahl { color: #8a6d2f; }
+  table.rangliste td, table.rangliste th { color: #111; border-color: #ccc; }
+  .schullogo { background: none; }
+}
+
 </style>
 </head>
 <body>
@@ -487,14 +557,17 @@ table.rangliste td:first-child { color: var(--messing); width: 2.4rem; }
     <header class="hud" id="hud" hidden></header>
     <main id="inhalt"></main>
     <footer class="fusszeile">
-      <span>Dreizehn Minuten · Unterrichtsspiel</span>
+      <span class="schulmarke schulmarke--klein">
+        <img class="schullogo" src="assets/logo.png" alt="">
+        <span class="schulname">BBS Papenburg<b>Technik und Wirtschaft</b></span>
+      </span>
       <span>Elser · Tresckow · Bussche · Kleist · Stieff · Stauffenberg</span>
     </footer>
   </div>
 
 <script>
 /*
- * story.js — Inhalte des Spiels "Dreizehn Minuten"
+ * story.js — Inhalte des "Hitler-Attentäter-Spiels"
  * Sechs Attentate auf Adolf Hitler, 1939-1944.
  *
  * Regel des Spiels: Die historisch belegte Entscheidung ist die richtige.
@@ -1634,7 +1707,7 @@ if (typeof module !== "undefined") { module.exports = SCENES; }
 
 
 /*
- * game.js — Spiellogik für "Dreizehn Minuten"
+ * game.js — Spiellogik für das "Hitler-Attentäter-Spiel"
  *
  * Ablauf: Startbild → je Kapitel (Aktendeckel → Entscheidungsszenen → Epilog) → Abspann.
  * Die historisch belegte Entscheidung ist immer die richtige. Falsche Entscheidungen
@@ -1648,6 +1721,18 @@ const BONUS_KAPITEL     = 100;   // Kapitel ohne Fehler
 const BONUS_AKTE        = 300;   // gesamtes Spiel ohne Fehler
 const SPUREN            = 3;
 const SPEICHER          = "dreizehn-minuten.rangliste";
+
+/* Pfad zum Schullogo. tools/build.mjs ersetzt diese Zeichenkette beim Bauen der
+   Einzeldatei durch das eingebettete Bild, damit die Datei ohne Ordner auskommt.
+   Fehlt die Datei, bleibt nur der Schriftzug stehen — kein kaputtes Bildsymbol. */
+const LOGO_QUELLE = "assets/logo.png";
+
+function schulmarke(klasse) {
+  return `<span class="schulmarke ${klasse || ""}">
+    <img class="schullogo" src="${LOGO_QUELLE}" alt="">
+    <span class="schulname">BBS Papenburg<b>Technik und Wirtschaft</b></span>
+  </span>`;
+}
 
 const spiel = {
   name: "",
@@ -1687,7 +1772,18 @@ function setzeSzene(name) {
 
 function male(html) {
   $("#inhalt").innerHTML = html;
+  logoPruefen();
   $("#inhalt").scrollIntoView({ block: "nearest" });
+}
+
+// Ohne Logodatei bleibt der Schriftzug allein stehen.
+function logoPruefen() {
+  document.querySelectorAll("img.schullogo").forEach((bild) => {
+    if (bild.dataset.geprueft) return;
+    bild.dataset.geprueft = "1";
+    bild.addEventListener("error", () => bild.remove());
+    if (bild.complete && bild.naturalWidth === 0) bild.remove();
+  });
 }
 
 /* --- Kopfleiste ------------------------------------------------------ */
@@ -1722,8 +1818,9 @@ function zeigeStart() {
   zeichneHud(false);
   male(`
     <article class="karte karte--weit titelblock">
+      ${schulmarke("schulmarke--gross")}
       <p class="eyebrow"><span>Geschichte interaktiv</span><span>1939 – 1944</span><span>6 Akten</span></p>
-      <h1>Dreizehn<br>Minuten</h1>
+      <h1>Hitler-<br>Attentäter-<br>Spiel</h1>
       <p class="untertitel">Sechs Attentate auf Hitler — und warum jedes scheiterte</p>
       <p class="lage">Du übernimmst nacheinander die Rolle von sechs Menschen, die versucht haben,
       Hitler zu töten. Vor dir liegen ihre Entscheidungen: über Sprengstoff, Tarnung, Termine,
@@ -1953,7 +2050,8 @@ function zeigeFinale() {
 
   male(`
     <article class="karte karte--weit">
-      <p class="eyebrow"><span>Auswertung</span><span>${sicher(spiel.name)}</span><span>${eintrag.datum}</span></p>
+      ${schulmarke("schulmarke--gross")}
+      <p class="eyebrow"><span>Auswertung</span><span>Hitler-Attentäter-Spiel</span><span>${sicher(spiel.name)}</span><span>${eintrag.datum}</span></p>
       <h2>${sicher(STORY.fazit.titel)}</h2>
       <div class="ergebnis">
         <span class="ergebnis__zahl">${spiel.punkte}</span>

@@ -1,5 +1,5 @@
 /*
- * story.js — Inhalte des Spiels "Dreizehn Minuten"
+ * story.js — Inhalte des "Hitler-Attentäter-Spiels"
  * Sechs Attentate auf Adolf Hitler, 1939-1944.
  *
  * Regel des Spiels: Die historisch belegte Entscheidung ist die richtige.

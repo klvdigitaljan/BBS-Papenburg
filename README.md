@@ -1,4 +1,4 @@
-# Dreizehn Minuten
+# Hitler-Attentäter-Spiel
 
 Ein interaktives Story-Spiel für den Geschichtsunterricht über die sechs bekanntesten
 Attentate und Attentatsplanungen gegen Hitler zwischen 1939 und 1944.
@@ -10,7 +10,8 @@ und erlebt, wie Hitler jedes Mal überlebte: durch Nebel, Kälte, einen Luftangr
 verschobenen Termin, einen Menschen, der im entscheidenden Moment nicht konnte, und einen
 massiven Tischsockel.
 
-Der Titel bezieht sich auf Georg Elser: Dreizehn Minuten früher hätte seine Bombe getroffen.
+Wie knapp es war, zeigt gleich die erste Akte: Dreizehn Minuten früher hätte Georg Elsers
+Bombe getroffen.
 
 ## Spielen
 
@@ -19,7 +20,7 @@ Drei Wege, alle ohne Internetverbindung lauffähig:
 | Weg | Vorgehen |
 |---|---|
 | Aus dem Repository | `index.html` im Browser öffnen |
-| Einzeldatei (USB-Stick, Moodle, IServ) | `dist/dreizehn-minuten.html` verteilen — alles ist in dieser einen Datei enthalten |
+| Einzeldatei (USB-Stick, Moodle, IServ) | `dist/hitler-attentaeter-spiel.html` verteilen — alles ist in dieser einen Datei enthalten |
 | Lokaler Server | `npx http-server .` und die angezeigte Adresse öffnen |
 
 Ohne Internet werden die Google-Schriften durch systemeigene Schriften ersetzt; das Spiel
@@ -72,6 +73,7 @@ Bestenliste, die Ergebnisse lassen sich über „Ergebnis drucken“ sichern.
 
 ```
 index.html              Spielgerüst
+assets/logo.png         Schullogo (siehe unten — noch einzufügen)
 assets/story.js         sämtliche Texte, Entscheidungen und Auflösungen
 assets/scenes.js        die sieben gezeichneten Hintergrundkulissen (SVG)
 assets/game.js          Spiellogik, Wertung, Rangliste
@@ -91,7 +93,24 @@ Nach Änderungen an `assets/` oder `index.html`:
 node tools/build.mjs
 ```
 
-Das erzeugt `dist/dreizehn-minuten.html` (Einzeldatei zum Verteilen) und `dist/artifact.html`.
+Das erzeugt `dist/hitler-attentaeter-spiel.html` (Einzeldatei zum Verteilen) und `dist/artifact.html`.
+
+## Schullogo einfügen
+
+Das Spiel hat feste Plätze für das Logo der BBS Papenburg: über dem Titel auf dem Startbild,
+über der Auswertung am Ende und klein in der Fußzeile jeder Seite. Ebenso auf dem Ausdruck des
+Ergebnisses.
+
+So kommt das Bild hinein:
+
+1. Die Logodatei als **`assets/logo.png`** ablegen (über die GitHub-Oberfläche:
+   *Add file → Upload files*, Zielordner `assets`, Dateiname `logo.png`).
+   PNG mit transparentem Hintergrund sieht auf dem dunklen Untergrund am besten aus.
+2. `node tools/build.mjs` ausführen. Das Logo wird dabei direkt in die Einzeldatei
+   eingebettet, damit sie weiterhin ohne Ordner funktioniert.
+
+Solange die Datei fehlt, steht an diesen Stellen nur der Schriftzug
+„BBS Papenburg — Technik und Wirtschaft“. Es erscheint kein kaputtes Bildsymbol.
 
 ## Sachliche Grundlage
 

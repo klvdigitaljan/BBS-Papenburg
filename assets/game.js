@@ -1,5 +1,5 @@
 /*
- * game.js — Spiellogik für "Dreizehn Minuten"
+ * game.js — Spiellogik für das "Hitler-Attentäter-Spiel"
  *
  * Ablauf: Startbild → je Kapitel (Aktendeckel → Entscheidungsszenen → Epilog) → Abspann.
  * Die historisch belegte Entscheidung ist immer die richtige. Falsche Entscheidungen
@@ -13,6 +13,18 @@ const BONUS_KAPITEL     = 100;   // Kapitel ohne Fehler
 const BONUS_AKTE        = 300;   // gesamtes Spiel ohne Fehler
 const SPUREN            = 3;
 const SPEICHER          = "dreizehn-minuten.rangliste";
+
+/* Pfad zum Schullogo. tools/build.mjs ersetzt diese Zeichenkette beim Bauen der
+   Einzeldatei durch das eingebettete Bild, damit die Datei ohne Ordner auskommt.
+   Fehlt die Datei, bleibt nur der Schriftzug stehen — kein kaputtes Bildsymbol. */
+const LOGO_QUELLE = "assets/logo.png";
+
+function schulmarke(klasse) {
+  return `<span class="schulmarke ${klasse || ""}">
+    <img class="schullogo" src="${LOGO_QUELLE}" alt="">
+    <span class="schulname">BBS Papenburg<b>Technik und Wirtschaft</b></span>
+  </span>`;
+}
 
 const spiel = {
   name: "",
@@ -52,7 +64,18 @@ function setzeSzene(name) {
 
 function male(html) {
   $("#inhalt").innerHTML = html;
+  logoPruefen();
   $("#inhalt").scrollIntoView({ block: "nearest" });
+}
+
+// Ohne Logodatei bleibt der Schriftzug allein stehen.
+function logoPruefen() {
+  document.querySelectorAll("img.schullogo").forEach((bild) => {
+    if (bild.dataset.geprueft) return;
+    bild.dataset.geprueft = "1";
+    bild.addEventListener("error", () => bild.remove());
+    if (bild.complete && bild.naturalWidth === 0) bild.remove();
+  });
 }
 
 /* --- Kopfleiste ------------------------------------------------------ */
@@ -87,8 +110,9 @@ function zeigeStart() {
   zeichneHud(false);
   male(`
     <article class="karte karte--weit titelblock">
+      ${schulmarke("schulmarke--gross")}
       <p class="eyebrow"><span>Geschichte interaktiv</span><span>1939 – 1944</span><span>6 Akten</span></p>
-      <h1>Dreizehn<br>Minuten</h1>
+      <h1>Hitler-<br>Attentäter-<br>Spiel</h1>
       <p class="untertitel">Sechs Attentate auf Hitler — und warum jedes scheiterte</p>
       <p class="lage">Du übernimmst nacheinander die Rolle von sechs Menschen, die versucht haben,
       Hitler zu töten. Vor dir liegen ihre Entscheidungen: über Sprengstoff, Tarnung, Termine,
@@ -318,7 +342,8 @@ function zeigeFinale() {
 
   male(`
     <article class="karte karte--weit">
-      <p class="eyebrow"><span>Auswertung</span><span>${sicher(spiel.name)}</span><span>${eintrag.datum}</span></p>
+      ${schulmarke("schulmarke--gross")}
+      <p class="eyebrow"><span>Auswertung</span><span>Hitler-Attentäter-Spiel</span><span>${sicher(spiel.name)}</span><span>${eintrag.datum}</span></p>
       <h2>${sicher(STORY.fazit.titel)}</h2>
       <div class="ergebnis">
         <span class="ergebnis__zahl">${spiel.punkte}</span>

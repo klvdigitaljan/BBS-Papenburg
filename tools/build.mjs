@@ -1,13 +1,15 @@
 /*
  * Baut aus index.html + assets/ zwei Dateien:
- *   dist/dreizehn-minuten.html  — eine einzige HTML-Datei, offline lauffähig
- *                                 (auf USB-Stick kopieren oder in Moodle hochladen)
- *   dist/artifact.html          — dieselbe Seite ohne <html>/<head>/<body>,
- *                                 zum Veröffentlichen als Claude-Artifact
+ *   dist/hitler-attentaeter-spiel.html — eine einzige HTML-Datei, offline lauffähig
+ *                                       (auf USB-Stick kopieren oder in Moodle hochladen)
+ *   dist/artifact.html                — dieselbe Seite ohne <html>/<head>/<body>,
+ *                                       zum Veröffentlichen als Claude-Artifact
+ *
+ * Liegt assets/logo.png vor, wird das Schullogo als Data-URI eingebettet.
  *
  * Aufruf:  node tools/build.mjs
  */
-import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -27,11 +29,21 @@ const koerper = html
   .trim();
 
 const kopf = `${titel}\n${beschr}\n${fonts}\n<style>\n${css}\n</style>`;
-const rumpf = `${koerper}\n\n<script>\n${skript}\n</script>`;
+let rumpf = `${koerper}\n\n<script>\n${skript}\n</script>`;
+
+// Schullogo einbetten, damit die Einzeldatei ohne Ordner auskommt.
+const logoPfad = join(wurzel, "assets/logo.png");
+if (existsSync(logoPfad)) {
+  const daten = readFileSync(logoPfad).toString("base64");
+  rumpf = rumpf.replaceAll("assets/logo.png", `data:image/png;base64,${daten}`);
+  console.log(`Schullogo eingebettet (${Math.round(daten.length / 1024)} kB als Data-URI).`);
+} else {
+  console.log("Hinweis: assets/logo.png fehlt — das Spiel zeigt nur den Schriftzug.");
+}
 
 mkdirSync(join(wurzel, "dist"), { recursive: true });
 
-writeFileSync(join(wurzel, "dist/dreizehn-minuten.html"),
+writeFileSync(join(wurzel, "dist/hitler-attentaeter-spiel.html"),
 `<!doctype html>
 <html lang="de">
 <head>
@@ -47,4 +59,4 @@ ${rumpf}
 
 writeFileSync(join(wurzel, "dist/artifact.html"), `${kopf}\n\n${rumpf}\n`);
 
-console.log("dist/dreizehn-minuten.html und dist/artifact.html gebaut.");
+console.log("dist/hitler-attentaeter-spiel.html und dist/artifact.html gebaut.");
