@@ -157,9 +157,19 @@ function zeigeKapitel() {
 
 /* --- Entscheidungsszene ---------------------------------------------- */
 
+function mischen(anzahl) {
+  const folge = Array.from({ length: anzahl }, (_, i) => i);
+  for (let i = folge.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [folge[i], folge[j]] = [folge[j], folge[i]];
+  }
+  return folge;
+}
+
 function zeigeSzene() {
   const k = STORY.kapitel[spiel.kapitel];
   const s = k.szenen[spiel.szene];
+  const folge = mischen(s.optionen.length);
   spiel.fehlversuche = 0;
   zeichneHud(true);
   male(`
@@ -171,10 +181,10 @@ function zeigeSzene() {
       <p class="lage">${s.lage}</p>
       <p class="frage">${s.frage}</p>
       <ul class="optionen" id="optionen">
-        ${s.optionen.map((o, i) => `
-          <li><button class="option" data-i="${i}">
-            <span class="option__nr">${i + 1}</span>
-            <span>${o.t}</span>
+        ${folge.map((nr, platz) => `
+          <li><button class="option" data-i="${nr}" data-pos="${platz}">
+            <span class="option__nr">${platz + 1}</span>
+            <span>${s.optionen[nr].t}</span>
           </button></li>`).join("")}
       </ul>
       <div id="rueckmeldung"></div>
@@ -275,7 +285,7 @@ function zeigeEpilog() {
       <p class="eyebrow"><span>Akte ${k.nr} · Ausgang</span><span>${sicher(k.kurzdatum)}</span></p>
       <h2>${sicher(k.epilog.titel)}</h2>
       <p class="lage">${k.epilog.text}</p>
-      <ul class="fakten">${k.epilog.fakten.map((f) => `<li><span></span><span>${f}</span></li>`).join("")}</ul>
+      <ul class="fakten">${k.epilog.fakten.map((f) => `<li><span>${f}</span></li>`).join("")}</ul>
       ${bonus ? `<p class="quelle">Akte ohne Fehlentscheidung abgeschlossen: +${bonus} Punkte.</p>` : ""}
       <div class="knopfreihe">
         <button class="knopf" id="weiter">${letzte ? "Auswertung" : "Akte " + STORY.kapitel[spiel.kapitel + 1].nr + " öffnen"}</button>
@@ -403,8 +413,8 @@ function zeigeRangliste() {
 document.addEventListener("keydown", (e) => {
   if (e.target instanceof HTMLInputElement) return;
   if (e.key >= "1" && e.key <= "4") {
-    const knopf = document.querySelector(`.option[data-i="${Number(e.key) - 1}"]`);
-    if (knopf && !knopf.disabled) { e.preventDefault(); waehle(Number(e.key) - 1); }
+    const knopf = document.querySelector(`.option[data-pos="${Number(e.key) - 1}"]`);
+    if (knopf && !knopf.disabled) { e.preventDefault(); waehle(Number(knopf.dataset.i)); }
   }
   if (e.key === "Enter") {
     const weiter = $("#weiter");
