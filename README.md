@@ -19,6 +19,7 @@ Drei Wege, alle ohne Internetverbindung lauffähig:
 
 | Weg | Vorgehen |
 |---|---|
+| **Für die Klasse: GitHub Pages** | In den Repository-Einstellungen unter *Pages* als Quelle *Deploy from a branch* wählen, Branch `claude/focused-mendel-b0ci2e`, Ordner `/ (root)`. Das Spiel läuft dann unter `https://klvdigitaljan.github.io/BBS-Papenburg/`, die Tafelansicht unter `…/tafel.html`. |
 | Aus dem Repository | `index.html` im Browser öffnen |
 | Einzeldatei (USB-Stick, Moodle, IServ) | `dist/hitler-attentaeter-spiel.html` verteilen — alles ist in dieser einen Datei enthalten |
 | Lokaler Server | `npx http-server .` und die angezeigte Adresse öffnen |
@@ -41,9 +42,9 @@ funktioniert vollständig.
 * Nach jeder Entscheidung erscheint die historische Auflösung; die Spielzeit dient nur
   als Kriterium bei Punktgleichheit.
 
-Die Rangliste wird lokal im Browser gespeichert (`localStorage`), also pro Rechner bzw.
-pro Benutzerprofil. Für einen Klassenwettbewerb genügt das: Am Ende zeigt jedes Gerät seine
-Bestenliste, die Ergebnisse lassen sich über „Ergebnis drucken“ sichern.
+Jedes Gerät führt seine eigene Rangliste (`localStorage`). Für den Klassenwettbewerb gibt es
+die **Tafelansicht** (siehe unten): Dort laufen die Ergebnisse aller Geräte über einen kurzen
+Ergebnis-Code zusammen.
 
 ## Einsatz im Unterricht
 
@@ -78,7 +79,11 @@ assets/story.js         sämtliche Texte, Entscheidungen und Auflösungen
 assets/scenes.js        die sieben gezeichneten Hintergrundkulissen (SVG)
 assets/game.js          Spiellogik, Wertung, Rangliste
 assets/styles.css       Gestaltung
+tafel.html              Tafelansicht: QR-Code und Bestenliste der Klasse
+assets/tafel.js         Logik der Tafelansicht, assets/tafel.css deren Gestaltung
+assets/qr.js            QR-Code-Erzeuger (Eigenbau, ohne fremde Bibliothek)
 tools/build.mjs         baut die Einzeldateien in dist/
+tools/qr-pruefen.mjs    prüft den QR-Erzeuger gegen einen echten Decoder
 dist/                   fertige Ausgabedateien (eingecheckt, damit sie ohne Node nutzbar sind)
 ```
 
@@ -93,7 +98,45 @@ Nach Änderungen an `assets/` oder `index.html`:
 node tools/build.mjs
 ```
 
-Das erzeugt `dist/hitler-attentaeter-spiel.html` (Einzeldatei zum Verteilen) und `dist/artifact.html`.
+Das erzeugt `dist/hitler-attentaeter-spiel.html` und `dist/tafel-bestenliste.html`
+(beides Einzeldateien zum Verteilen), `dist/artifact.html` sowie `dist/qr-spiel.svg`.
+
+## Tafelansicht: QR-Code und Bestenliste der Klasse
+
+`tafel.html` ist die Ansicht für Beamer oder Whiteboard. Links steht ein großer
+**QR-Code auf die Spieladresse** — die Schülerinnen und Schüler halten die iPad-Kamera
+darauf und sind im Spiel. Rechts wächst während der Stunde die **Bestenliste der Klasse**.
+
+So kommen die Ergebnisse zusammen:
+
+1. Am Ende des Spiels zeigt jedes Gerät einen neunstelligen **Ergebnis-Code**,
+   zum Beispiel `2X0000ZOM`. Darin stecken Punkte, Fehlentscheidungen und Spielzeit.
+2. Name und Code werden unten in der Tafelansicht eingetragen — entweder ruft die
+   Schülerin beides durch, oder sie tippt es selbst am Lehrerrechner ein.
+   Beides in einem Feld (`Mia K. 2X0000ZOM`) funktioniert auch.
+3. Die Liste sortiert sich selbst: Punkte zuerst, bei Gleichstand die schnellere Zeit.
+
+Das letzte Zeichen des Codes ist eine Prüfziffer. Vertippt man sich, wird der Code
+abgewiesen; ausgedachte Codes werden fast immer erkannt. Wasserdicht gegen Schummeln
+ist das nicht — es fängt Tippfehler ab.
+
+Die Liste liegt im Browser des Lehrerrechners (`localStorage`), nicht auf einem Server.
+Es verlässt also nichts den Raum. „Liste leeren“ setzt sie für die nächste Klasse zurück.
+Mit „Adresse ändern“ lässt sich einstellen, wohin der QR-Code zeigt.
+
+### Den QR-Code weiterverwenden
+
+`dist/qr-spiel.svg` ist derselbe Code als Datei — für Arbeitsblätter, Folien oder einen
+Aushang. Zeigt er auf die falsche Adresse, neu bauen mit:
+
+```bash
+node tools/build.mjs https://eure-adresse.example/spiel/
+```
+
+Der QR-Erzeuger in `assets/qr.js` ist Eigenbau, damit nichts nachgeladen werden muss.
+Er ist mit `node tools/qr-pruefen.mjs` geprüft: Jeder erzeugte Code wird von einem
+echten Decoder (OpenCV) wieder eingelesen und mit dem Ausgangstext verglichen,
+für die Versionen 1 bis 10.
 
 ## Schullogo einfügen
 

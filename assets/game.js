@@ -49,6 +49,17 @@ function sicher(text) {
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[z]));
 }
 
+/* Kurzcode für die Tafel-Bestenliste: Punkte, Fehler und Zeit in Basis 36,
+   dazu ein Prüfzeichen, damit Tippfehler beim Abschreiben auffallen. */
+function ergebnisCode(punkte, fehler, sekunden) {
+  const b36 = (wert, stellen) => Math.max(0, Math.min(Math.pow(36, stellen) - 1, Math.round(wert)))
+    .toString(36).toUpperCase().padStart(stellen, "0");
+  const kern = b36(punkte, 3) + b36(fehler, 2) + b36(sekunden, 3);
+  let summe = 0;
+  for (const z of kern) summe += parseInt(z, 36);
+  return kern + (summe % 36).toString(36).toUpperCase();
+}
+
 function zeitString(ms) {
   const s = Math.max(0, Math.round(ms / 1000));
   return `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
@@ -355,6 +366,14 @@ function zeigeFinale() {
       </div>
       <p class="lage">${STORY.fazit.text}</p>
       <blockquote class="zitat">${STORY.fazit.zitat}<cite>${sicher(STORY.fazit.zitatQuelle)}</cite></blockquote>
+      <div class="codekarte">
+        <span class="marke marke--ok">Für die Bestenliste an der Tafel</span>
+        <p class="leise">Sag deinen Namen und diesen Code durch — oder tippe ihn selbst am Lehrerrechner ein.</p>
+        <div class="codezeile">
+          <code id="ergebniscode">${ergebnisCode(spiel.punkte, spiel.fehler, eintrag.sekunden)}</code>
+          <button class="knopf knopf--leise" id="code-kopieren" type="button">Kopieren</button>
+        </div>
+      </div>
       <div id="ranglistenbereich"></div>
       <div class="knopfreihe">
         <button class="knopf" id="nochmal">Noch einmal spielen</button>
@@ -363,6 +382,22 @@ function zeigeFinale() {
     </article>`);
 
   zeichneRangliste($("#ranglistenbereich"), eintrag);
+  $("#code-kopieren").addEventListener("click", async (e) => {
+    const code = $("#ergebniscode").textContent;
+    try {
+      await navigator.clipboard.writeText(code);
+      e.target.textContent = "Kopiert";
+    } catch (fehler) {
+      // Ohne Zwischenablage-Recht: Code markieren, damit er von Hand kopiert werden kann
+      const bereich = document.createRange();
+      bereich.selectNodeContents($("#ergebniscode"));
+      const auswahl = window.getSelection();
+      auswahl.removeAllRanges();
+      auswahl.addRange(bereich);
+      e.target.textContent = "Markiert";
+    }
+    setTimeout(() => { e.target.textContent = "Kopieren"; }, 2500);
+  });
   $("#nochmal").addEventListener("click", zeigeStart);
   $("#drucken").addEventListener("click", () => window.print());
 }

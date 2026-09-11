@@ -560,3 +560,25 @@ table.rangliste td:first-child { color: var(--messing); width: 2.4rem; }
   table.rangliste td, table.rangliste th { color: #111; border-color: #ccc; }
   .schullogo { background: none; }
 }
+
+/* --- Ergebnis-Code für die Tafel-Bestenliste -------------------------- */
+
+.codekarte {
+  margin-top: var(--s3);
+  padding: var(--s3);
+  background: var(--flaeche);
+  border: 1px solid var(--linie);
+  border-left: 3px solid var(--messing);
+}
+.codekarte p { margin-bottom: var(--s2); }
+.codezeile { display: flex; align-items: center; gap: var(--s3); flex-wrap: wrap; }
+.codezeile code {
+  font-family: var(--schrift-daten);
+  font-size: clamp(1.6rem, 5vw, 2.4rem);
+  letter-spacing: .22em;
+  color: var(--messing-2);
+  background: var(--tinte-tief);
+  padding: .3rem .8rem;
+  border: 1px dashed rgba(200,161,90,.5);
+  user-select: all;
+}
