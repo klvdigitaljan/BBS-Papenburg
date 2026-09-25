@@ -124,6 +124,26 @@ Die Liste liegt im Browser des Lehrerrechners (`localStorage`), nicht auf einem 
 Es verlässt also nichts den Raum. „Liste leeren“ setzt sie für die nächste Klasse zurück.
 Mit „Adresse ändern“ lässt sich einstellen, wohin der QR-Code zeigt.
 
+### Wenn der QR-Code einen 404 von GitHub zeigt
+
+Dann ist GitHub Pages noch nicht eingeschaltet — die Adresse gibt es dann einfach nicht.
+
+1. https://github.com/klvdigitaljan/BBS-Papenburg/settings/pages öffnen
+2. *Source*: **Deploy from a branch**
+3. *Branch*: **`claude/focused-mendel-b0ci2e`**, Ordner **`/ (root)`** → **Save**
+4. Ein bis zwei Minuten warten. Oben auf derselben Seite erscheint dann
+   „Your site is live at https://klvdigitaljan.github.io/BBS-Papenburg/“.
+
+Weitere Ursachen für einen 404, falls Pages bereits an ist:
+
+* Als Ordner wurde `/docs` statt `/ (root)` gewählt — `index.html` liegt im Hauptverzeichnis.
+* Groß- und Kleinschreibung: Die Adresse lautet `/BBS-Papenburg/`, nicht `/bbs-papenburg/`.
+* Der erste Aufbau läuft noch. Unter *Actions* steht dann ein Lauf
+  „pages build and deployment“; erst wenn der grün ist, antwortet die Seite.
+
+Die Datei `.nojekyll` im Hauptverzeichnis sorgt dafür, dass GitHub die Dateien
+unverändert ausliefert und nicht durch den Jekyll-Generator schickt.
+
 ### Den QR-Code weiterverwenden
 
 `dist/qr-spiel.svg` ist derselbe Code als Datei — für Arbeitsblätter, Folien oder einen
