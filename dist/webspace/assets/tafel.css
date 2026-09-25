@@ -1,0 +1,169 @@
+/* =====================================================================
+   Tafelansicht — für Beamer und Whiteboard.
+   Große Schrift, hoher Kontrast, alles auf einer Seite ohne Scrollen.
+   ===================================================================== */
+
+body.tafel {
+  background: var(--tinte);
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  padding: clamp(12px, 1.6vw, 26px) clamp(16px, 2.2vw, 34px);
+  gap: clamp(10px, 1.4vh, 22px);
+  overflow: hidden;
+}
+
+.tafel__kopf {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  flex-wrap: wrap;
+  border-bottom: 1px solid rgba(200,161,90,.25);
+  padding-bottom: var(--s2);
+}
+.tafel__titel {
+  font-family: var(--schrift-titel);
+  font-size: clamp(1.4rem, 2.6vw, 2.4rem);
+  text-transform: uppercase;
+  letter-spacing: .02em;
+  margin: 0;
+  color: var(--papier);
+}
+.tafel__zaehler {
+  margin-left: auto;
+  font-family: var(--schrift-daten);
+  font-size: .8rem;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--messing);
+}
+
+.tafel__raum {
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(240px, 30%) 1fr;
+  gap: clamp(16px, 2.4vw, 40px);
+  min-height: 0;
+}
+.tafel__raum h2 {
+  font-size: clamp(1rem, 1.5vw, 1.4rem);
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: var(--messing);
+  margin-bottom: var(--s2);
+}
+
+/* --- QR-Bereich ------------------------------------------------------ */
+
+.tafel__einstieg { display: flex; flex-direction: column; min-height: 0; }
+.qrfeld {
+  background: #fff;
+  padding: clamp(8px, 1vw, 16px);
+  border: 1px solid var(--linie);
+  align-self: start;
+  width: 100%;
+  max-width: 34vh;
+  aspect-ratio: 1;
+}
+.qrfeld svg { width: 100%; height: 100%; display: block; }
+.qradresse {
+  font-family: var(--schrift-daten);
+  font-size: clamp(.7rem, .95vw, .92rem);
+  color: var(--papier);
+  word-break: break-all;
+  margin: var(--s2) 0 var(--s1);
+}
+
+/* --- Rangliste ------------------------------------------------------- */
+
+.tafel__liste { display: flex; flex-direction: column; min-height: 0; }
+.rang {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(3px, .5vh, 9px);
+  overflow: hidden;
+  counter-reset: platz;
+}
+.rang li {
+  display: grid;
+  grid-template-columns: 2.6em 1fr auto auto;
+  align-items: baseline;
+  gap: clamp(8px, 1.4vw, 22px);
+  padding: clamp(4px, .7vh, 11px) clamp(8px, 1vw, 16px);
+  background: var(--flaeche);
+  border-left: 3px solid var(--linie);
+  font-family: var(--schrift-titel);
+  font-size: clamp(1rem, 2.1vh, 1.9rem);
+  animation: auftauchen .4s ease both;
+}
+.rang .platz {
+  font-family: var(--schrift-daten);
+  font-size: .7em;
+  color: var(--gedaempft);
+  font-variant-numeric: tabular-nums;
+}
+.rang .wer { color: var(--papier); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rang .pkt { color: var(--messing-2); font-variant-numeric: tabular-nums; }
+.rang .neben {
+  font-family: var(--schrift-daten);
+  font-size: .52em;
+  letter-spacing: .08em;
+  color: var(--gedaempft);
+  font-variant-numeric: tabular-nums;
+}
+.rang li.gold   { border-left-color: var(--messing); background: rgba(200,161,90,.16); }
+.rang li.silber { border-left-color: #9fa6ae; }
+.rang li.bronze { border-left-color: #8a6a45; }
+.rang li.neu    { outline: 1px solid var(--messing); }
+
+/* --- Eingabe --------------------------------------------------------- */
+
+.tafel__fuss {
+  border-top: 1px solid var(--linie);
+  padding-top: var(--s2);
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  flex-wrap: wrap;
+}
+.eingabe {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  flex-wrap: wrap;
+}
+.eingabe label {
+  font-family: var(--schrift-daten);
+  font-size: .64rem;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--gedaempft);
+}
+.eingabe input {
+  font-family: var(--schrift-titel);
+  font-size: 1.1rem;
+  color: var(--papier);
+  background: var(--flaeche);
+  border: 1px solid var(--linie);
+  border-bottom: 2px solid var(--messing);
+  padding: .3rem .6rem;
+  width: 9rem;
+}
+#ecode { font-family: var(--schrift-daten); text-transform: uppercase; letter-spacing: .14em; width: 10rem; }
+.eingabe input:focus-visible { outline: 2px solid var(--messing-2); outline-offset: 2px; }
+.meldung { font-family: var(--schrift-daten); font-size: .74rem; letter-spacing: .06em; }
+.meldung.gut { color: var(--messing-2); }
+.meldung.schlecht { color: var(--oxid); }
+.werkzeuge { margin-left: auto; display: flex; gap: var(--s2); flex-wrap: wrap; }
+.werkzeuge .knopf { font-size: .84rem; padding: .32rem .9rem; }
+
+@media (max-width: 800px) {
+  body.tafel { overflow: auto; }
+  .tafel__raum { grid-template-columns: 1fr; }
+  .qrfeld { max-width: 60vw; }
+  .werkzeuge { margin-left: 0; }
+}

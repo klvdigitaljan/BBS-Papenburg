@@ -1247,9 +1247,17 @@ function qrZeichnen() {
 }
 
 function spieladresse() {
+  // 1. ?spiel=... in der Adresszeile hat Vorrang und wird gemerkt
+  const ausAdresszeile = new URLSearchParams(location.search).get("spiel");
+  if (ausAdresszeile) {
+    try { localStorage.setItem(ADRESS_SPEICHER, ausAdresszeile); } catch (e) { /* Privatmodus */ }
+    return ausAdresszeile;
+  }
+  // 2. was zuletzt über "Adresse ändern" eingestellt wurde
   let gespeichert = null;
   try { gespeichert = localStorage.getItem(ADRESS_SPEICHER); } catch (e) { /* egal */ }
   if (gespeichert) return gespeichert;
+  // 3. sonst der eigene Ordner: liegt das Spiel als index.html daneben, stimmt das schon
   if (location.protocol === "http:" || location.protocol === "https:") {
     return new URL(".", location.href).href;
   }

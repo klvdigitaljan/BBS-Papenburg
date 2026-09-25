@@ -19,6 +19,7 @@ Drei Wege, alle ohne Internetverbindung lauffähig:
 
 | Weg | Vorgehen |
 |---|---|
+| **Für die Klasse: eigener Webspace** | `dist/webspace.zip` entpacken und hochladen — siehe unten. |
 | **Für die Klasse: GitHub Pages** | In den Repository-Einstellungen unter *Pages* als Quelle *Deploy from a branch* wählen, Branch `claude/focused-mendel-b0ci2e`, Ordner `/ (root)`. Das Spiel läuft dann unter `https://klvdigitaljan.github.io/BBS-Papenburg/`, die Tafelansicht unter `…/tafel.html`. |
 | Aus dem Repository | `index.html` im Browser öffnen |
 | Einzeldatei (USB-Stick, Moodle, IServ) | `dist/hitler-attentaeter-spiel.html` verteilen — alles ist in dieser einen Datei enthalten |
@@ -85,6 +86,7 @@ assets/qr.js            QR-Code-Erzeuger (Eigenbau, ohne fremde Bibliothek)
 tools/build.mjs         baut die Einzeldateien in dist/
 tools/qr-pruefen.mjs    prüft den QR-Erzeuger gegen einen echten Decoder
 dist/                   fertige Ausgabedateien (eingecheckt, damit sie ohne Node nutzbar sind)
+dist/webspace/          Ordner zum Hochladen auf einen Webserver, auch als webspace.zip
 ```
 
 Inhalte ändern, ergänzen oder kürzen: alles steht in `assets/story.js`. Eine neue Akte ist
@@ -123,6 +125,38 @@ ist das nicht — es fängt Tippfehler ab.
 Die Liste liegt im Browser des Lehrerrechners (`localStorage`), nicht auf einem Server.
 Es verlässt also nichts den Raum. „Liste leeren“ setzt sie für die nächste Klasse zurück.
 Mit „Adresse ändern“ lässt sich einstellen, wohin der QR-Code zeigt.
+
+### Auf eigenem Webspace betreiben (empfohlen, wenn vorhanden)
+
+Das Spiel ist reines HTML: kein PHP, keine Datenbank, keine Serverkonfiguration.
+Jeder Webspace genügt, auch eine temporäre Domain.
+
+1. `dist/webspace.zip` entpacken und den **Inhalt** des Ordners hochladen,
+   zum Beispiel nach `/spiel/`.
+2. Fertig:
+   * `https://eure-adresse/spiel/` — das Spiel
+   * `https://eure-adresse/spiel/tafel.html` — Tafelansicht mit QR-Code und Bestenliste
+
+Der QR-Code in der Tafelansicht zeigt **automatisch auf den Ordner, in dem die Dateien
+liegen**. Solange `index.html` und `tafel.html` beieinander liegen, ist nichts einzustellen.
+
+Soll er woandershin zeigen — etwa auf einen kurzen Weiterleitungslink, der sich leichter
+abtippen lässt — gibt es zwei Wege:
+
+* unten in der Tafelansicht auf **Adresse ändern** klicken, oder
+* die Tafelansicht mit Parameter aufrufen:
+  `tafel.html?spiel=https://kurz.example/spiel`
+
+Für Ausdrucke und Folien lässt sich der Code als Datei erzeugen:
+
+```bash
+node tools/build.mjs https://eure-adresse/spiel/
+# schreibt dist/qr-spiel.svg
+```
+
+HTTPS ist nicht zwingend — das Spiel braucht keine Kamera- oder Standortrechte —
+aber die meisten Hoster liefern ein kostenloses Zertifikat mit, und in Safari
+sieht eine `https`-Adresse für die Klasse vertrauenswürdiger aus.
 
 ### Wenn der QR-Code einen 404 von GitHub zeigt
 

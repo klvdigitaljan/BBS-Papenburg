@@ -1,0 +1,25 @@
+Hitler-Attentäter-Spiel — BBS Papenburg
+=======================================
+
+Diesen ganzen Ordnerinhalt auf den Webspace laden, zum Beispiel nach /spiel/.
+Es wird nichts weiter gebraucht: kein PHP, keine Datenbank, keine Einstellungen.
+
+Danach erreichbar unter:
+
+  https://eure-adresse/spiel/              ->  das Spiel
+  https://eure-adresse/spiel/tafel.html    ->  Tafelansicht mit QR-Code und Bestenliste
+
+Der QR-Code in der Tafelansicht zeigt automatisch auf den Ordner, in dem die
+Dateien liegen. Solange index.html und tafel.html beieinander liegen, ist
+nichts einzustellen.
+
+Soll der QR-Code woandershin zeigen, entweder in der Tafelansicht unten auf
+"Adresse ändern" klicken, oder die Tafelansicht so aufrufen:
+
+  https://eure-adresse/spiel/tafel.html?spiel=https://kurzlink.example/spiel
+
+Dateien:
+  index.html        das Spiel
+  tafel.html        Tafelansicht fuer Beamer oder Whiteboard
+  assets/           Stile, Texte, Grafiken, Programmteile
+  assets/logo.png   Schullogo (fehlt es, steht dort nur der Schriftzug)
