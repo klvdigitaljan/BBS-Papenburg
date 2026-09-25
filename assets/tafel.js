@@ -8,7 +8,7 @@
 
 const TAFEL_SPEICHER = "dreizehn-minuten.tafel";
 const ADRESS_SPEICHER = "dreizehn-minuten.spieladresse";
-const NOTADRESSE = "https://klvdigitaljan.github.io/BBS-Papenburg/";
+const NOTADRESSE = null;   // unbekannt: dann wird nachgefragt statt geraten
 
 const $ = (s) => document.querySelector(s);
 let eintraege = [];
@@ -85,6 +85,15 @@ function zeichnen() {
 
 function qrZeichnen() {
   const adresse = spieladresse();
+  if (!adresse) {
+    $("#qrfeld").innerHTML = `<div class="qrfehlt">
+      <strong>Adresse des Spiels fehlt</strong>
+      <span>Diese Datei liegt auf dem Rechner, nicht im Netz — sie kann die Adresse
+      nicht selbst kennen. Unten auf „Adresse ändern“ klicken.</span>
+    </div>`;
+    $("#qradresse").textContent = "";
+    return;
+  }
   $("#qrfeld").innerHTML = QR.svg(adresse, { rand: 2, dunkel: "#0e1013", hell: "#ffffff" });
   $("#qradresse").textContent = adresse;
 }

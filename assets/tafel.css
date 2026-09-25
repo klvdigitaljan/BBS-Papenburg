@@ -167,3 +167,23 @@ body.tafel {
   .qrfeld { max-width: 60vw; }
   .werkzeuge { margin-left: 0; }
 }
+
+/* Wenn die Spieladresse unbekannt ist, steht hier ein Hinweis statt eines QR-Codes */
+.qrfehlt {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--s2);
+  padding: var(--s3);
+  background: var(--flaeche);
+  text-align: left;
+}
+.qrfehlt strong {
+  font-family: var(--schrift-titel);
+  font-size: 1.15rem;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--oxid);
+}
+.qrfehlt span { font-size: .88rem; line-height: 1.45; color: var(--gedaempft); }

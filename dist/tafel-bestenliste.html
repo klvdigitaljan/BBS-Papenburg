@@ -766,6 +766,26 @@ body.tafel {
   .werkzeuge { margin-left: 0; }
 }
 
+/* Wenn die Spieladresse unbekannt ist, steht hier ein Hinweis statt eines QR-Codes */
+.qrfehlt {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--s2);
+  padding: var(--s3);
+  background: var(--flaeche);
+  text-align: left;
+}
+.qrfehlt strong {
+  font-family: var(--schrift-titel);
+  font-size: 1.15rem;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--oxid);
+}
+.qrfehlt span { font-size: .88rem; line-height: 1.45; color: var(--gedaempft); }
+
 </style>
 </head>
 <body class="tafel">
@@ -1165,7 +1185,7 @@ if (typeof module !== "undefined") { module.exports = QR; }
 
 const TAFEL_SPEICHER = "dreizehn-minuten.tafel";
 const ADRESS_SPEICHER = "dreizehn-minuten.spieladresse";
-const NOTADRESSE = "https://klvdigitaljan.github.io/BBS-Papenburg/";
+const NOTADRESSE = null;   // unbekannt: dann wird nachgefragt statt geraten
 
 const $ = (s) => document.querySelector(s);
 let eintraege = [];
@@ -1242,6 +1262,15 @@ function zeichnen() {
 
 function qrZeichnen() {
   const adresse = spieladresse();
+  if (!adresse) {
+    $("#qrfeld").innerHTML = `<div class="qrfehlt">
+      <strong>Adresse des Spiels fehlt</strong>
+      <span>Diese Datei liegt auf dem Rechner, nicht im Netz — sie kann die Adresse
+      nicht selbst kennen. Unten auf „Adresse ändern“ klicken.</span>
+    </div>`;
+    $("#qradresse").textContent = "";
+    return;
+  }
   $("#qrfeld").innerHTML = QR.svg(adresse, { rand: 2, dunkel: "#0e1013", hell: "#ffffff" });
   $("#qradresse").textContent = adresse;
 }

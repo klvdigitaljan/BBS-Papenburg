@@ -1,25 +1,22 @@
 Hitler-Attentäter-Spiel — BBS Papenburg
 =======================================
 
-Diesen ganzen Ordnerinhalt auf den Webspace laden, zum Beispiel nach /spiel/.
-Es wird nichts weiter gebraucht: kein PHP, keine Datenbank, keine Einstellungen.
+Diesen ganzen Ordnerinhalt auf den Webspace laden (Hauptverzeichnis oder
+Unterordner). Es wird nichts weiter gebraucht: kein PHP, keine Datenbank.
 
-Danach erreichbar unter:
+  index.html     ->  das Spiel (die Adresse, die die Schueler scannen)
+  tafel.html     ->  Tafelansicht: QR-Code links, Bestenliste rechts
+  assets/        ->  Stile, Texte, Grafiken, Programmteile
+  qr-spiel.png   ->  QR-Code als Bild fuer Folien und Arbeitsblaetter
+  qr-spiel.svg   ->  derselbe Code verlustfrei fuer den Druck
 
-  https://eure-adresse/spiel/              ->  das Spiel
-  https://eure-adresse/spiel/tafel.html    ->  Tafelansicht mit QR-Code und Bestenliste
+Ablauf im Unterricht
+--------------------
+1. tafel.html am Lehrerrechner oeffnen, unten auf "Vollbild", an den Beamer.
+2. Schueler halten die iPad-Kamera auf den QR-Code und tippen die Adresse an.
+3. Am Ende zeigt jedes Geraet einen neunstelligen Ergebnis-Code.
+   Name und Code unten an der Tafel eintippen - die Liste sortiert sich selbst.
+4. "Liste leeren" setzt fuer die naechste Klasse zurueck.
 
-Der QR-Code in der Tafelansicht zeigt automatisch auf den Ordner, in dem die
-Dateien liegen. Solange index.html und tafel.html beieinander liegen, ist
-nichts einzustellen.
-
-Soll der QR-Code woandershin zeigen, entweder in der Tafelansicht unten auf
-"Adresse ändern" klicken, oder die Tafelansicht so aufrufen:
-
-  https://eure-adresse/spiel/tafel.html?spiel=https://kurzlink.example/spiel
-
-Dateien:
-  index.html        das Spiel
-  tafel.html        Tafelansicht fuer Beamer oder Whiteboard
-  assets/           Stile, Texte, Grafiken, Programmteile
-  assets/logo.png   Schullogo (fehlt es, steht dort nur der Schriftzug)
+Die Bestenliste liegt im Browser des Lehrerrechners. Sie verlaesst den Raum
+nicht - und sie ist weg, wenn jemand die Browserdaten loescht.
