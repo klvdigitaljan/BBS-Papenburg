@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Expertenrunde — Tafel</title>
+<meta name="description" content="Tafelansicht der Expertenrunde: QR-Code zum Beitreten und Übersicht aller sechs Personen mit ihren Gruppen.">
+<link rel="icon" href="assets/icon-180.png?v=6">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="stylesheet" href="assets/styles.css?v=6">
+<link rel="stylesheet" href="assets/tafel.css?v=6">
+<link rel="stylesheet" href="assets/experte.css?v=6">
+</head>
+<body class="tafel">
+  <header class="tafel__kopf">
+    <span class="schulmarke schulmarke--klein">
+      <img class="schullogo" src="assets/logo.png?v=6" alt="">
+      <span class="schulname">BBS Papenburg<b>Technik und Wirtschaft</b></span>
+    </span>
+    <h1 class="tafel__titel">Expertenrunde</h1>
+    <span class="tafel__quelle" id="quelle" hidden></span>
+    <span class="tafel__zaehler" id="zaehler">0 Gruppen</span>
+  </header>
+
+  <main class="tafel__raum">
+    <section class="tafel__einstieg">
+      <h2>Scannen und loslegen</h2>
+      <div class="qrfeld" id="qrfeld"></div>
+      <p class="qradresse" id="qradresse"></p>
+      <p class="leise">Namen eingeben — die Person wird automatisch zugeteilt.</p>
+    </section>
+
+    <section class="tafel__liste">
+      <h2>Die sechs Personen</h2>
+      <ul class="stationen" id="stationen"></ul>
+    </section>
+  </main>
+
+  <footer class="tafel__fuss">
+    <span class="leise" id="hinweis">Die beste Gruppe je Person trägt vor. „Vorgetragen" gibt 200 Punkte.</span>
+    <div class="werkzeuge">
+      <button class="knopf knopf--leise" id="adresse-aendern">Adresse ändern</button>
+      <button class="knopf knopf--leise" id="vollbild">Vollbild</button>
+      <button class="knopf knopf--leise" id="leeren">Alles zurücksetzen</button>
+    </div>
+  </footer>
+
+  <script src="assets/story.js?v=6"></script>
+  <script src="assets/qr.js?v=6"></script>
+  <script src="assets/experten-tafel.js?v=6"></script>
+</body>
+</html>

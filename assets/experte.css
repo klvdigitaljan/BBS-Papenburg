@@ -1,0 +1,144 @@
+/* =====================================================================
+   Expertenrunde — Vortragskarte auf den Schülergeräten
+   und Stationsübersicht an der Tafel.
+   ===================================================================== */
+
+/* --- Vortragskarte --------------------------------------------------- */
+
+.vortrag {
+  margin-top: var(--s3);
+  padding: var(--s3);
+  background: var(--flaeche);
+  border: 1px solid var(--linie);
+  border-left: 3px solid var(--messing);
+}
+.vortrag h3 { margin: var(--s2) 0; color: var(--papier); }
+.vortrag__punkte {
+  list-style: none;
+  counter-reset: schritt;
+  margin: var(--s2) 0 0;
+  padding: 0;
+  display: grid;
+  gap: var(--s2);
+}
+.vortrag__punkte li {
+  counter-increment: schritt;
+  display: grid;
+  grid-template-columns: 1.6rem 1fr;
+  gap: var(--s2);
+  align-items: baseline;
+}
+.vortrag__punkte li::before {
+  content: counter(schritt);
+  font-family: var(--schrift-daten);
+  font-size: .78rem;
+  color: var(--messing);
+}
+.vortrag__punkte b {
+  display: block;
+  font-family: var(--schrift-titel);
+  font-size: 1.05rem;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  color: var(--papier);
+}
+.vortrag__punkte span { color: var(--gedaempft); font-size: .95rem; }
+.vortrag--gross { border-left-width: 4px; }
+.vortrag--gross .vortrag__punkte b { font-size: 1.15rem; }
+
+.meldung { font-family: var(--schrift-daten); font-size: .78rem; color: var(--gedaempft); }
+.meldung a { color: var(--messing-2); }
+
+/* --- Stationen an der Tafel ------------------------------------------ */
+
+.stationen {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: clamp(8px, 1vw, 16px);
+  min-height: 0;
+}
+.station {
+  background: var(--flaeche);
+  border: 1px solid var(--linie);
+  border-top: 3px solid var(--linie);
+  padding: clamp(8px, .9vw, 14px);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 0;
+}
+.station.hat-gruppe { border-top-color: var(--messing); }
+.station.dran { background: rgba(200,161,90,.16); border-color: var(--messing); }
+.station.fertig { border-top-color: var(--messing-2); }
+
+.station__kopf { display: flex; align-items: baseline; gap: .5rem; }
+.station__nr {
+  font-family: var(--schrift-daten);
+  font-size: .68rem;
+  letter-spacing: .14em;
+  color: var(--messing);
+}
+.station__name {
+  font-family: var(--schrift-titel);
+  font-size: clamp(.95rem, 1.6vh, 1.35rem);
+  color: var(--papier);
+  line-height: 1.1;
+}
+.station__datum {
+  font-family: var(--schrift-daten);
+  font-size: .62rem;
+  letter-spacing: .1em;
+  color: var(--gedaempft);
+  margin-left: auto;
+}
+.station__gruppen { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; }
+.station__gruppen li {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: .5rem;
+  align-items: baseline;
+  font-family: var(--schrift-titel);
+  font-size: clamp(.82rem, 1.35vh, 1.05rem);
+  color: var(--gedaempft);
+  padding: 2px 0;
+  border-bottom: 1px solid rgba(47,52,60,.6);
+}
+.station__gruppen li.beste { color: var(--papier); }
+.station__gruppen li.beste .pkt { color: var(--messing-2); }
+.station__gruppen .pkt { font-family: var(--schrift-daten); font-variant-numeric: tabular-nums; }
+.station__gruppen .lage {
+  font-family: var(--schrift-daten);
+  font-size: .58rem;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: #5d646d;
+}
+.station__gruppen li.beste .lage { color: var(--messing); }
+.station__leer { font-size: .8rem; color: #5d646d; font-style: italic; }
+
+.station__knopf {
+  margin-top: auto;
+  font-family: var(--schrift-titel);
+  font-size: .78rem;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--messing);
+  background: transparent;
+  border: 1px solid var(--linie);
+  padding: .3rem .6rem;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.station__knopf:hover { background: rgba(200,161,90,.14); border-color: var(--messing); }
+.station__knopf:disabled { opacity: .4; cursor: default; }
+.station__knopf.erledigt { background: var(--messing); color: var(--tinte); border-color: var(--messing); }
+
+@media (max-width: 1100px) {
+  .stationen { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 700px) {
+  .stationen { grid-template-columns: 1fr; }
+}

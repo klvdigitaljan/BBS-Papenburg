@@ -47,6 +47,24 @@ Jedes Gerät führt seine eigene Rangliste (`localStorage`). Für den Klassenwet
 die **Tafelansicht** (siehe unten): Dort laufen die Ergebnisse aller Geräte über einen kurzen
 Ergebnis-Code zusammen.
 
+## Expertenrunde (eigenes Format, ~18 Minuten)
+
+Für einen kurzen Einstieg, bei dem trotzdem alle sechs Personen vorkommen:
+`experte.html` teilt jeder Gruppe **reihum eine Person zu**, sie trifft drei
+Entscheidungen und stellt ihre Person danach der Klasse in 90 Sekunden vor.
+`experten-tafel.html` zeigt am Beamer die sechs Stationen mit ihren Gruppen.
+
+* **Zuteilung:** `experten.php` vergibt immer die Person mit den wenigsten
+  Gruppen. Die Zuteilung bleibt im Gerät gemerkt.
+* **Punkte:** drei Entscheidungen zu je 100 (zweiter Versuch 60, dritter 30),
+  kein Rauswurf, dazu 200 Punkte Vortragsbonus — Höchstzahl 500 für alle gleich.
+* **Vortragsrecht:** die punktbeste fertige Gruppe je Person; die Tafel markiert sie.
+  Nach dem Vortrag vergibt die Lehrkraft den Bonus per Klick (Schlüssel nötig).
+* **Zeit:** 2 Min Beitritt, 6 Min lesen und entscheiden, 9–10 Min Vorträge.
+
+In `experten.php` denselben Schlüssel eintragen wie in `tafel.php`.
+Gespeichert wird in `experten.json`; `tafel.php` bleibt davon unberührt.
+
 ## Kurzfassung für eine Einzelstunde
 
 Über die Adresszeile lässt sich die Auswahl der Akten steuern — ohne etwas am Spiel
@@ -104,6 +122,9 @@ assets/game.js          Spiellogik, Wertung, Rangliste
 assets/styles.css       Gestaltung
 tafel.html              Tafelansicht: QR-Code und Bestenliste der Klasse
 tafel.php               Sammelstelle: nimmt die Ergebnisse der Geräte entgegen
+experte.html            Expertenrunde: Schülerseite mit zugeteilter Person
+experten-tafel.html     Expertenrunde: Tafel mit den sechs Stationen
+experten.php            Expertenrunde: Zuteilung, Punkte, Vortragsbonus
 assets/tafel.js         Logik der Tafelansicht, assets/tafel.css deren Gestaltung
 assets/qr.js            QR-Code-Erzeuger (Eigenbau, ohne fremde Bibliothek)
 tools/build.mjs         baut die Einzeldateien in dist/
