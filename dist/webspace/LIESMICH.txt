@@ -1,12 +1,13 @@
 Hitler-Attentäter-Spiel — BBS Papenburg
 =======================================
 
-Diesen ganzen Ordnerinhalt auf den Webspace laden (Hauptverzeichnis oder
-Unterordner). Es wird nichts weiter gebraucht: kein PHP, keine Datenbank.
+Diesen ganzen Ordnerinhalt auf den Webspace laden und Vorhandenes
+ueberschreiben. Es wird nichts weiter gebraucht: kein PHP, keine Datenbank.
 
   index.html     ->  das Spiel (die Adresse, die die Schueler scannen)
   tafel.html     ->  Tafelansicht: QR-Code links, Bestenliste rechts
   assets/        ->  Stile, Texte, Grafiken, Programmteile
+  assets/logo.png -> Schullogo (wird oben im Spiel und an der Tafel gezeigt)
   qr-spiel.png   ->  QR-Code als Bild fuer Folien und Arbeitsblaetter
   qr-spiel.svg   ->  derselbe Code verlustfrei fuer den Druck
 
@@ -19,4 +20,4 @@ Ablauf im Unterricht
 4. "Liste leeren" setzt fuer die naechste Klasse zurueck.
 
 Die Bestenliste liegt im Browser des Lehrerrechners. Sie verlaesst den Raum
-nicht - und sie ist weg, wenn jemand die Browserdaten loescht.
+nicht - und sie ist weg, wenn jemand dort die Browserdaten loescht.

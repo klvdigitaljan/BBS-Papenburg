@@ -79,13 +79,17 @@ function male(html) {
   $("#inhalt").scrollIntoView({ block: "nearest" });
 }
 
-// Ohne Logodatei bleibt der Schriftzug allein stehen.
+// Ohne Logodatei bleibt der Schriftzug allein stehen; mit Logo entfällt er,
+// weil der Schulname schon im Bild steht.
 function logoPruefen() {
   document.querySelectorAll("img.schullogo").forEach((bild) => {
     if (bild.dataset.geprueft) return;
     bild.dataset.geprueft = "1";
+    const marke = bild.closest(".schulmarke");
+    const geladen = () => marke && marke.classList.add("hat-logo");
     bild.addEventListener("error", () => bild.remove());
-    if (bild.complete && bild.naturalWidth === 0) bild.remove();
+    bild.addEventListener("load", geladen);
+    if (bild.complete) { if (bild.naturalWidth === 0) bild.remove(); else geladen(); }
   });
 }
 

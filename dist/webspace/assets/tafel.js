@@ -199,8 +199,11 @@ function start() {
 
   // Fehlt das Schullogo, bleibt nur der Schriftzug stehen
   document.querySelectorAll("img.schullogo").forEach((bild) => {
+    const marke = bild.closest(".schulmarke");
+    const geladen = () => marke && marke.classList.add("hat-logo");
     bild.addEventListener("error", () => bild.remove());
-    if (bild.complete && bild.naturalWidth === 0) bild.remove();
+    bild.addEventListener("load", geladen);
+    if (bild.complete) { if (bild.naturalWidth === 0) bild.remove(); else geladen(); }
   });
 
   let uhr;

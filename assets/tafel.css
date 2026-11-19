@@ -22,6 +22,10 @@ body.tafel {
   border-bottom: 1px solid rgba(200,161,90,.25);
   padding-bottom: var(--s2);
 }
+/* Am Beamer soll das Logo lesbar sein; der Name steht dann schon im Bild. */
+.tafel__kopf .schullogo { height: 2.9rem; }
+.tafel__kopf .schulmarke.hat-logo .schulname { display: none; }
+
 .tafel__titel {
   font-family: var(--schrift-titel);
   font-size: clamp(1.4rem, 2.6vw, 2.4rem);

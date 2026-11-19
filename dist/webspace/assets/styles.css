@@ -503,8 +503,9 @@ table.rangliste td:first-child { color: var(--messing); width: 2.4rem; }
   height: 2.4rem;
   width: auto;
   max-width: 100%;
-  border-radius: 50%;
-  background: #f4f4f2;
+  border-radius: 4px;
+  background: #fff;
+  padding: 2px;
 }
 .schulname {
   display: flex;
@@ -530,8 +531,11 @@ table.rangliste td:first-child { color: var(--messing); width: 2.4rem; }
   padding-bottom: var(--s3);
   border-bottom: 1px solid var(--linie);
 }
-.schulmarke--gross .schullogo { height: 3.4rem; }
+.schulmarke--gross .schullogo { height: 5.6rem; }
 .schulmarke--gross .schulname { font-size: 1rem; }
+
+/* Das Schullogo trägt den Namen bereits im Bild — dann nicht doppelt schreiben. */
+.schulmarke--gross.hat-logo .schulname { display: none; }
 
 .schulmarke--klein .schullogo { height: 1.6rem; }
 .schulmarke--klein .schulname { font-size: .66rem; letter-spacing: .1em; color: #5d646d; }
