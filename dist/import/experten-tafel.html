@@ -36,19 +36,20 @@
   gap: var(--s2);
 }
 .vortrag__punkte li {
-  counter-increment: schritt;
   display: grid;
-  grid-template-columns: 1.6rem 1fr;
+  grid-template-columns: 1.7rem 1fr;   /* genau zwei Kästchen: Nummer und Text */
   gap: var(--s2);
-  align-items: baseline;
+  align-items: start;
+  padding: .45rem .55rem;
+  border-left: 2px solid transparent;
 }
-.vortrag__punkte li::before {
-  content: counter(schritt);
+.punkt__nr {
   font-family: var(--schrift-daten);
   font-size: .78rem;
   color: var(--messing);
+  line-height: 1.5;
 }
-.vortrag__punkte b {
+.punkt__text b {
   display: block;
   font-family: var(--schrift-titel);
   font-size: 1.05rem;
@@ -56,9 +57,36 @@
   letter-spacing: .05em;
   color: var(--papier);
 }
-.vortrag__punkte span { color: var(--gedaempft); font-size: .95rem; }
+.punkt__text span {
+  display: block;
+  color: var(--papier);
+  font-size: .98rem;
+  line-height: 1.5;
+}
+.punkt__wer {
+  display: inline-block;
+  margin-top: .25rem;
+  font-family: var(--schrift-daten);
+  font-style: normal;
+  font-size: .64rem;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+
+/* Was ich selbst sage, steht hervorgehoben — was die andere Person sagt, tritt zurück */
+.punkt--meins { background: rgba(200,161,90,.12); border-left-color: var(--messing); }
+.punkt--meins .punkt__wer { color: var(--messing-2); }
+.punkt--partner { opacity: .62; }
+.punkt--partner .punkt__text span { color: var(--gedaempft); }
+.punkt--partner .punkt__wer { color: var(--gedaempft); }
+
 .vortrag--gross { border-left-width: 4px; }
-.vortrag--gross .vortrag__punkte b { font-size: 1.15rem; }
+.vortrag--gross .punkt__text b { font-size: 1.2rem; }
+.vortrag--gross .punkt__text span { font-size: 1.05rem; }
+
+/* Die Punktzahl steht am Ende klein unter dem Vortrag */
+.ergebnis--klein { margin-top: var(--s3); border-bottom: none; padding-bottom: 0; }
+.ergebnis--klein .ergebnis__zahl { font-size: clamp(2rem, 7vw, 3rem); }
 
 .meldung { font-family: var(--schrift-daten); font-size: .78rem; color: var(--gedaempft); }
 .meldung a { color: var(--messing-2); }

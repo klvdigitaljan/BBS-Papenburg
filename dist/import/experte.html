@@ -40,19 +40,20 @@
   gap: var(--s2);
 }
 .vortrag__punkte li {
-  counter-increment: schritt;
   display: grid;
-  grid-template-columns: 1.6rem 1fr;
+  grid-template-columns: 1.7rem 1fr;   /* genau zwei Kästchen: Nummer und Text */
   gap: var(--s2);
-  align-items: baseline;
+  align-items: start;
+  padding: .45rem .55rem;
+  border-left: 2px solid transparent;
 }
-.vortrag__punkte li::before {
-  content: counter(schritt);
+.punkt__nr {
   font-family: var(--schrift-daten);
   font-size: .78rem;
   color: var(--messing);
+  line-height: 1.5;
 }
-.vortrag__punkte b {
+.punkt__text b {
   display: block;
   font-family: var(--schrift-titel);
   font-size: 1.05rem;
@@ -60,9 +61,36 @@
   letter-spacing: .05em;
   color: var(--papier);
 }
-.vortrag__punkte span { color: var(--gedaempft); font-size: .95rem; }
+.punkt__text span {
+  display: block;
+  color: var(--papier);
+  font-size: .98rem;
+  line-height: 1.5;
+}
+.punkt__wer {
+  display: inline-block;
+  margin-top: .25rem;
+  font-family: var(--schrift-daten);
+  font-style: normal;
+  font-size: .64rem;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+
+/* Was ich selbst sage, steht hervorgehoben — was die andere Person sagt, tritt zurück */
+.punkt--meins { background: rgba(200,161,90,.12); border-left-color: var(--messing); }
+.punkt--meins .punkt__wer { color: var(--messing-2); }
+.punkt--partner { opacity: .62; }
+.punkt--partner .punkt__text span { color: var(--gedaempft); }
+.punkt--partner .punkt__wer { color: var(--gedaempft); }
+
 .vortrag--gross { border-left-width: 4px; }
-.vortrag--gross .vortrag__punkte b { font-size: 1.15rem; }
+.vortrag--gross .punkt__text b { font-size: 1.2rem; }
+.vortrag--gross .punkt__text span { font-size: 1.05rem; }
+
+/* Die Punktzahl steht am Ende klein unter dem Vortrag */
+.ergebnis--klein { margin-top: var(--s3); border-bottom: none; padding-bottom: 0; }
+.ergebnis--klein .ergebnis__zahl { font-size: clamp(2rem, 7vw, 3rem); }
 
 .meldung { font-family: var(--schrift-daten); font-size: .78rem; color: var(--gedaempft); }
 .meldung a { color: var(--messing-2); }
@@ -231,7 +259,7 @@
 
 const ENDPUNKT   = "experten.php";
 const SPEICHER   = "attentaeter.expertengruppe";
-const PRO_FRAGE  = [100, 60, 30];     // Punkte nach Anzahl der Fehlversuche
+const PRO_FRAGE  = [100, 60, 0];      // Punkte nach Fehlversuchen: 0, 1, ab 2 keine
 const HOECHST    = 300;               // drei Entscheidungen
 
 /* Je Person die drei charakteristischen Entscheidungen (Index in k.szenen) */
@@ -305,7 +333,7 @@ function zeigeStart() {
       zählt der Schnitt. Danach stellt ihr eure Person der Klasse in <strong>90 Sekunden</strong> vor —
       alle anderen lernen sie nur von euch.</p>
       <ul class="regeln">
-        <li><span class="marker">01</span><span><b>Drei Entscheidungen, je 100 Punkte.</b> Zweiter Versuch 60, dritter 30. Nichts geht verloren, wenn ihr falsch liegt.</span></li>
+        <li><span class="marker">01</span><span><b>Drei Entscheidungen, je 100 Punkte.</b> Beim zweiten Versuch 60 — wer zweimal danebenliegt, bekommt für diese Entscheidung nichts.</span></li>
         <li><span class="marker">02</span><span><b>Richtig ist,</b> was damals wirklich entschieden wurde — nicht, was am klügsten klingt.</span></li>
         <li><span class="marker">03</span><span><b>Ihr seid immer zu zweit</b> — jeder an seinem eigenen iPad. Es zählt der <b>Schnitt eurer beiden Durchläufe</b>, also helft euch gegenseitig.</span></li>
         <li><span class="marker">04</span><span><b>Vortragsbonus: 200 Punkte.</b> Die beste Gruppe je Person trägt vor.</span></li>
@@ -530,7 +558,48 @@ function waehle(i) {
   });
 }
 
-/* --- Vortragskarte --------------------------------------------------- */
+/* --- Vortragskarte: die fertigen Ergebnisse, aufgeteilt auf beide ------ */
+
+function vortragsPunkte(k) {
+  return [
+    { titel: "Wer war das?", text: `${sicher(k.person.split(",")[0])} — ${sicher(k.steckbrief.alter)}.
+      Der Anschlag: ${sicher(k.datum)}, ${sicher(k.ort)}.` },
+    { titel: "Der Plan", text: k.steckbrief.plan },
+    { titel: "Woran es scheiterte", text: k.steckbrief.scheitern },
+    { titel: "Was danach geschah", text: k.steckbrief.danach }
+  ];
+}
+
+/* Erste Person sagt Punkt 1 und 2, zweite Person Punkt 3 und 4.
+   Wer allein in der Gruppe ist, sagt alles. */
+function meineSaetze() {
+  if (runde.mitglieder.length < 2) return [0, 1, 2, 3];
+  return runde.platz === 2 ? [2, 3] : [0, 1];
+}
+
+function vortragsListe(k) {
+  const punkte = vortragsPunkte(k);
+  const meine = meineSaetze();
+  const partner = runde.mitglieder.length > 1
+    ? sicher(runde.mitglieder[runde.platz === 2 ? 0 : 1] || "deine Partnerin")
+    : null;
+  return `
+    <ol class="vortrag__punkte">
+      ${punkte.map((p, i) => {
+        const meins = meine.includes(i);
+        return `
+        <li class="punkt ${meins ? "punkt--meins" : "punkt--partner"}">
+          <span class="punkt__nr">${i + 1}</span>
+          <div class="punkt__text">
+            <b>${p.titel}</b>
+            <span>${p.text}</span>
+            ${meins ? `<em class="punkt__wer">sagst du</em>`
+                    : `<em class="punkt__wer">sagt ${partner}</em>`}
+          </div>
+        </li>`;
+      }).join("")}
+    </ol>`;
+}
 
 function zeigeVortrag() {
   const k = STORY.kapitel[runde.person];
@@ -544,14 +613,10 @@ function zeigeVortrag() {
 
       <div class="vortrag">
         <span class="marke marke--ok">Euer Vortrag · 90 Sekunden</span>
-        <p class="leise">Diese vier Punkte erzählt ihr der Klasse. Alles dafür steht oben und auf den
-        Seiten davor — schaut noch einmal nach, bevor ihr euch meldet.</p>
-        <ol class="vortrag__punkte">
-          <li><b>Wer war das?</b><span>${sicher(k.person)} · ${sicher(k.datum)} · ${sicher(k.ort)}</span></li>
-          <li><b>Was war der Plan?</b><span>Mit welchem Mittel, auf welchem Weg kam diese Person an Hitler heran?</span></li>
-          <li><b>Woran ist es gescheitert?</b><span>Ein Satz — das ist der wichtigste.</span></li>
-          <li><b>Was wurde aus ihr?</b><span>Steht in den drei Zeilen über diesem Kasten.</span></li>
-        </ol>
+        <p class="leise">Das sind eure vier Sätze. ${runde.mitglieder.length > 1
+          ? "Zwei sagst du, zwei sagt deine Partnerin oder dein Partner."
+          : "Du sagst alle vier."} Lest sie einmal laut, bevor ihr euch meldet.</p>
+        ${vortragsListe(k)}
       </div>
 
       <div class="knopfreihe">
@@ -600,33 +665,25 @@ function zeigeAbschluss(gesendet, schon, inhalt) {
   kopf();
   male(`
     <article class="karte karte--weit">
-      <p class="eyebrow"><span>${sicher(gruppenname())}</span><span>Akte ${k.nr}</span></p>
-      <div class="ergebnis">
+      <p class="eyebrow"><span>${sicher(gruppenname())}</span><span>Akte ${k.nr} · ${sicher(k.kurzdatum)}</span></p>
+
+      <div class="vortrag vortrag--gross">
+        <span class="marke marke--ok">Jetzt dran: euer Vortrag</span>
+        <h3>${sicher(k.person.split(",")[0])}</h3>
+        ${vortragsListe(k)}
+      </div>
+
+      <div class="ergebnis ergebnis--klein">
         <span class="ergebnis__zahl">${runde.punkte}</span>
         <div class="ergebnis__neben">
           <span class="leise">dein Durchlauf · von ${HOECHST} Punkten · ${runde.fehler} ${runde.fehler === 1 ? "Fehlversuch" : "Fehlversuche"}</span>
           ${gruppenstand(inhalt)}
           <span class="leise">${!gesendet ? "Nicht gesendet — meldet euch mündlich."
             : schon ? "Dein Durchlauf war schon eingetragen."
-            : "Ihr steht an der Tafel. Der Vortragsbonus bringt bis zu 200 Punkte dazu."}</span>
+            : "Ihr steht an der Tafel. Lasst diese Seite offen, bis ihr dran seid."}</span>
         </div>
       </div>
-      <div class="vortrag vortrag--gross">
-        <span class="marke marke--ok">Jetzt: euren Vortrag vorbereiten</span>
-        <h3>${sicher(k.person.split(",")[0])} — ${sicher(k.kurzdatum)}</h3>
-        <ol class="vortrag__punkte">
-          <li><b>Wer?</b><span>${sicher(k.person)}, ${sicher(k.ort)}</span></li>
-          <li><b>Plan?</b><span>Womit und wie nah kam die Person heran?</span></li>
-          <li><b>Gescheitert woran?</b><span>${sicher(k.epilog.titel)} — erzählt es in einem Satz.</span></li>
-          <li><b>Und danach?</b><span>${k.epilog.fakten[k.epilog.fakten.length - 1].replace(/<[^>]*>/g, "")}</span></li>
-        </ol>
-        <p class="leise">Lasst diese Seite offen, bis ihr dran seid.</p>
-      </div>
-      <div class="knopfreihe">
-        <button class="knopf knopf--leise" id="nochmal">Noch einmal nachlesen</button>
-      </div>
     </article>`);
-  $("#nochmal").addEventListener("click", () => { partnerSucheBeenden(); zeigeZuteilung(); });
 }
 
 /* Nach dem Abschicken: zeigen, sobald auch die andere Person fertig ist */
@@ -640,8 +697,8 @@ function gruppeBeobachten() {
       if (!inhalt || !Array.isArray(inhalt.ergebnisse)) return;
       if (Array.isArray(inhalt.mitglieder)) runde.mitglieder = inhalt.mitglieder;
       inhalt.abgegeben = inhalt.ergebnisse.filter(Boolean).length;
-      const feld = document.querySelector(".ergebnis__neben .leise:nth-child(2)");
-      if (feld) feld.outerHTML = gruppenstand(inhalt);
+      const felder = document.querySelectorAll(".ergebnis__neben .leise");
+      if (felder[1]) felder[1].outerHTML = gruppenstand(inhalt);
       if (inhalt.fertig) partnerSucheBeenden();
     } catch (e) { /* beim nächsten Versuch wieder */ }
   }, 4000);
