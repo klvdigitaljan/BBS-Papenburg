@@ -98,18 +98,6 @@ function zeigeStart() {
       </div>
     </article>`);
 
-  const gemerkt = gespeichert();
-  if (gemerkt) {
-    $("#gruppe").value = gemerkt.gruppe || "";
-    $("#meldung").innerHTML = `Ihr wart schon zugeteilt.
-      <a href="#" id="weiter-mit">Weiter mit ${sicher(STORY.kapitel[gemerkt.person].person.split(",")[0])}</a>`;
-    $("#weiter-mit").addEventListener("click", (e) => {
-      e.preventDefault();
-      Object.assign(runde, gemerkt, { szene: 0, punkte: 0, fehler: 0 });
-      if (!Array.isArray(runde.mitglieder)) runde.mitglieder = [runde.gruppe];
-      zeigeZuteilung();
-    });
-  }
   $("#los").addEventListener("click", zuteilen);
   $("#gruppe").addEventListener("keydown", (e) => { if (e.key === "Enter") zuteilen(); });
 }
@@ -192,9 +180,19 @@ function zeigeZuteilung() {
         <div><span class="k">Rolle</span><span class="w">${sicher(k.person)}</span></div>
       </div>
       <p class="lage">${k.intro}</p>
-      <div class="knopfreihe"><button class="knopf" id="weiter">Erste Entscheidung</button></div>
+      <div class="knopfreihe">
+        <button class="knopf" id="weiter">Erste Entscheidung</button>
+        <button class="knopf knopf--leise" id="abmelden" type="button">Nicht eure Gruppe?</button>
+      </div>
     </article>`);
   $("#weiter").addEventListener("click", () => { partnerSucheBeenden(); zeigeSzene(); });
+  $("#abmelden").addEventListener("click", () => {
+    if (!window.confirm("Dieses Gerät aus der Gruppe nehmen und neu anmelden?")) return;
+    partnerSucheBeenden();
+    vergessen();
+    runde.id = null; runde.person = null; runde.mitglieder = [];
+    zeigeStart();
+  });
   if (runde.mitglieder.length < 2) partnerSuchen();
 }
 
@@ -310,12 +308,16 @@ function waehle(i) {
 /* --- Vortragskarte: die fertigen Ergebnisse, aufgeteilt auf beide ------ */
 
 function vortragsPunkte(k) {
+  // Sollte eine ältere story.js ohne Steckbriefe ankommen, greifen die
+  // Angaben aus dem Epilog — die Karte geht auf jeden Fall auf.
+  const b = k.steckbrief || {};
+  const letzterFakt = (k.epilog.fakten[k.epilog.fakten.length - 1] || "").replace(/<[^>]*>/g, "");
   return [
-    { titel: "Wer war das?", text: `${sicher(k.person.split(",")[0])} — ${sicher(k.steckbrief.alter)}.
+    { titel: "Wer war das?", text: `${sicher(k.person.split(",")[0])}${b.alter ? " — " + sicher(b.alter) : ", " + sicher(k.person.split(",").slice(1).join(",").trim())}.
       Der Anschlag: ${sicher(k.datum)}, ${sicher(k.ort)}.` },
-    { titel: "Der Plan", text: k.steckbrief.plan },
-    { titel: "Woran es scheiterte", text: k.steckbrief.scheitern },
-    { titel: "Was danach geschah", text: k.steckbrief.danach }
+    { titel: "Der Plan", text: b.plan || sicher(k.akte.split("/")[1] || "") },
+    { titel: "Woran es scheiterte", text: b.scheitern || sicher(k.epilog.titel) },
+    { titel: "Was danach geschah", text: b.danach || letzterFakt }
   ];
 }
 
@@ -467,4 +469,57 @@ document.addEventListener("keydown", (e) => {
   }
 });
 
-document.addEventListener("DOMContentLoaded", zeigeStart);
+/* Beim Laden zuerst nachsehen, ob dieses Gerät schon in einer Gruppe ist.
+   Sonst entstünde bei jedem Neuladen eine neue Gruppe — und eine Person
+   würde mehrfach vergeben. */
+async function start() {
+  const gemerkt = gespeichert();
+  if (gemerkt && await gruppeFortsetzen(gemerkt)) return;
+  zeigeStart();
+}
+
+async function gruppeFortsetzen(gemerkt) {
+  if (!/^https?:$/.test(location.protocol)) return false;
+  let daten;
+  try {
+    const antwort = await fetch(`${ENDPUNKT}?aktion=gruppe&id=${encodeURIComponent(gemerkt.id)}`, { cache: "no-store" });
+    if (antwort.status === 404) { vergessen(); return false; }   // Liste wurde zurückgesetzt
+    if (!antwort.ok) return false;
+    daten = await antwort.json();
+  } catch (e) {
+    return false;                                               // kein Netz: normal anfangen
+  }
+  if (!daten || typeof daten.person !== "number" || !STORY.kapitel[daten.person]) return false;
+
+  Object.assign(runde, {
+    id: gemerkt.id,
+    gruppe: gemerkt.gruppe,
+    platz: gemerkt.platz || 1,
+    mitglieder: Array.isArray(daten.mitglieder) && daten.mitglieder.length
+      ? daten.mitglieder : (gemerkt.mitglieder || [gemerkt.gruppe]),
+    person: daten.person,
+    szene: 0, punkte: 0, fehler: 0
+  });
+  merken();
+
+  // Hat dieses Gerät schon abgegeben? Dann gleich wieder die Ergebnisse zeigen.
+  const meins = Array.isArray(daten.ergebnisse) ? daten.ergebnisse[runde.platz - 1] : null;
+  if (meins) {
+    runde.punkte = meins.punkte;
+    runde.fehler = meins.fehler;
+    runde.szene = 3;
+    setzeSzene(STORY.kapitel[runde.person].szene);
+    daten.abgegeben = daten.ergebnisse.filter(Boolean).length;
+    zeigeAbschluss(true, true, daten);
+    if (!daten.fertig) gruppeBeobachten();
+    return true;
+  }
+  zeigeZuteilung();
+  return true;
+}
+
+function vergessen() {
+  try { localStorage.removeItem(SPEICHER); } catch (e) { /* egal */ }
+}
+
+document.addEventListener("DOMContentLoaded", start);
