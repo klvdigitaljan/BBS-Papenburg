@@ -80,7 +80,10 @@ function quelleZeigen() {
 
 function zeichnen() {
   const fertige = gruppen.filter((g) => g.fertig).length;
-  $("#zaehler").textContent = `${gruppen.length} ${gruppen.length === 1 ? "Gruppe" : "Gruppen"} · ${fertige} fertig`;
+  const koepfe = gruppen.reduce((summe, g) =>
+    summe + (Array.isArray(g.mitglieder) && g.mitglieder.length ? g.mitglieder.length : 1), 0);
+  $("#zaehler").textContent =
+    `${koepfe} ${koepfe === 1 ? "Person" : "Personen"} · ${gruppen.length} ${gruppen.length === 1 ? "Gruppe" : "Gruppen"} · ${fertige} fertig`;
 
   $("#stationen").innerHTML = STORY.kapitel.map((k, i) => {
     const meine = gruppen
@@ -98,12 +101,20 @@ function zeichnen() {
         </div>
         ${meine.length ? `
           <ul class="station__gruppen">
-            ${meine.map((g) => `
+            ${meine.map((g) => {
+              const mitglieder = Array.isArray(g.mitglieder) && g.mitglieder.length ? g.mitglieder : [g.name];
+              const allein = mitglieder.length < 2;
+              const namen = sicher(mitglieder.join(" + ")) + (allein ? ` <span class="offen">+ frei</span>` : "");
+              const lage = g.vortrag ? "vorgetragen"
+                : g.fertig ? (beste && g.id === beste.id ? "trägt vor" : "fertig")
+                : allein ? "sucht Partner" : "liest";
+              return `
               <li class="${beste && g.id === beste.id ? "beste" : ""}">
-                <span>${sicher(g.name)}</span>
-                <span class="lage">${g.vortrag ? "vorgetragen" : (g.fertig ? (beste && g.id === beste.id ? "trägt vor" : "fertig") : "liest")}</span>
+                <span>${namen}</span>
+                <span class="lage">${lage}</span>
                 <span class="pkt">${g.fertig ? g.punkte + (g.vortrag ? VORTRAGSBONUS : 0) : "—"}</span>
-              </li>`).join("")}
+              </li>`;
+            }).join("")}
           </ul>` : `<p class="station__leer">noch keine Gruppe</p>`}
         <button class="station__knopf ${vorgetragen ? "erledigt" : ""}" data-id="${beste ? beste.id : ""}"
           ${beste ? "" : "disabled"}>${vorgetragen ? "Bonus vergeben" : `Vorgetragen +${VORTRAGSBONUS}`}</button>

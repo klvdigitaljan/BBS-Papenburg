@@ -142,3 +142,41 @@
 @media (max-width: 700px) {
   .stationen { grid-template-columns: 1fr; }
 }
+
+/* --- Gruppenanzeige auf dem Schülergerät ----------------------------- */
+
+.gruppe {
+  margin-bottom: var(--s3);
+  padding: var(--s2) var(--s3);
+  background: var(--flaeche);
+  border: 1px solid var(--linie);
+  border-left: 3px solid var(--messing);
+}
+.gruppe--neu { animation: auftauchen .5s ease both; border-color: var(--messing); }
+.gruppe__kopf {
+  font-family: var(--schrift-daten);
+  font-size: .66rem;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--messing);
+}
+.gruppe__namen {
+  display: flex;
+  align-items: baseline;
+  gap: .6rem;
+  flex-wrap: wrap;
+  margin: .2rem 0 .3rem;
+}
+.gruppe__name {
+  font-family: var(--schrift-titel);
+  font-size: clamp(1.2rem, 4vw, 1.7rem);
+  color: var(--papier);
+}
+.gruppe__plus { font-family: var(--schrift-titel); font-size: 1.2rem; color: var(--messing); }
+.gruppe__name--wartet {
+  color: var(--gedaempft);
+  font-size: clamp(.95rem, 3vw, 1.15rem);
+  animation: puls 2.2s ease-in-out infinite;
+}
+.gruppe p { margin: 0; font-size: .88rem; }
+.station__gruppen .offen { color: #5d646d; font-size: .82em; }

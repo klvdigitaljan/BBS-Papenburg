@@ -54,8 +54,14 @@ Für einen kurzen Einstieg, bei dem trotzdem alle sechs Personen vorkommen:
 Entscheidungen und stellt ihre Person danach der Klasse in 90 Sekunden vor.
 `experten-tafel.html` zeigt am Beamer die sechs Stationen mit ihren Gruppen.
 
-* **Zuteilung:** `experten.php` vergibt immer die Person mit den wenigsten
-  Gruppen. Die Zuteilung bleibt im Gerät gemerkt.
+* **Paarbildung:** Jede Schülerin, jeder Schüler meldet sich einzeln mit dem
+  eigenen Namen an. `experten.php` füllt damit Zweiergruppen auf: Die erste
+  Person sieht „wartet auf die zweite Person“, sobald jemand dazukommt,
+  erscheint der Name auf beiden Geräten (Abfrage alle drei Sekunden).
+  Die Gruppe bekommt die Person, die am wenigsten vergeben ist.
+  Die Zuteilung bleibt im Gerät gemerkt.
+* **Abgabe:** Beide dürfen abschicken, es zählt die erste Abgabe; das zweite
+  Gerät bekommt den Stand der Gruppe angezeigt.
 * **Punkte:** drei Entscheidungen zu je 100 (zweiter Versuch 60, dritter 30),
   kein Rauswurf, dazu 200 Punkte Vortragsbonus — Höchstzahl 500 für alle gleich.
 * **Vortragsrecht:** die punktbeste fertige Gruppe je Person; die Tafel markiert sie.

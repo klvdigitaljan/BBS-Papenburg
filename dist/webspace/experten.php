@@ -17,7 +17,8 @@ declare(strict_types=1);
 
 const SCHLUESSEL    = 'bbs-tafel';          // denselben wie in tafel.php eintragen
 const DATEI         = __DIR__ . '/experten.json';
-const PERSONEN      = 6;
+const PERSONEN       = 6;
+const GRUPPENGROESSE = 2;        // immer zwei Mitglieder je Gruppe
 const VORTRAGSBONUS = 200;
 const MAX_GRUPPEN   = 60;
 const MAX_NAME      = 28;
@@ -70,6 +71,25 @@ function antwort(array $daten): void {
 
 /* --- Anfragen ---------------------------------------------------------- */
 
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET' && ($_GET['aktion'] ?? '') === 'gruppe') {
+    $id = (string) ($_GET['id'] ?? '');
+    foreach (lesen()['gruppen'] as $g) {
+        if (($g['id'] ?? '') === $id) {
+            echo json_encode([
+                'id'         => $g['id'],
+                'person'     => (int) $g['person'],
+                'mitglieder' => $g['mitglieder'] ?? [],
+                'fertig'     => (bool) ($g['fertig'] ?? false),
+                'punkte'     => (int) ($g['punkte'] ?? 0),
+            ], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+    }
+    http_response_code(404);
+    echo json_encode(['fehler' => 'Diese Gruppe gibt es nicht mehr.']);
+    exit;
+}
+
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET') {
     $daten = lesen();
     $bekannt = isset($_GET['stand']) ? (int) $_GET['stand'] : -1;
@@ -98,7 +118,7 @@ if ($aktion === 'neu') {
 }
 
 if ($aktion === 'zuteilen') {
-    $name = trim((string) ($gesendet['gruppe'] ?? ''));
+    $name = trim((string) ($gesendet['name'] ?? $gesendet['gruppe'] ?? ''));
     $name = preg_replace('/[\x00-\x1F\x7F]/u', '', $name) ?? '';
     $name = function_exists('mb_substr') ? mb_substr($name, 0, MAX_NAME, 'UTF-8') : substr($name, 0, MAX_NAME);
     if ($name === '') {
@@ -106,35 +126,72 @@ if ($aktion === 'zuteilen') {
         echo json_encode(['fehler' => 'Ohne Namen geht es nicht.']);
         exit;
     }
-    $id = bin2hex(random_bytes(6));
-    $person = null;
-    aendern(static function (array $d) use ($name, $id, &$person): array {
+    $neueId = bin2hex(random_bytes(6));
+    $ergebnis = null;
+    aendern(static function (array $d) use ($name, $neueId, &$ergebnis): array {
+        // 1. Gibt es eine Gruppe, in der noch ein Platz frei ist? Dann dazu.
+        foreach ($d['gruppen'] as &$g) {
+            $mitglieder = $g['mitglieder'] ?? [];
+            if (count($mitglieder) < GRUPPENGROESSE && !($g['fertig'] ?? false)) {
+                $mitglieder[] = $name;
+                $g['mitglieder'] = $mitglieder;
+                $g['name'] = implode(' + ', $mitglieder);
+                $ergebnis = ['id' => $g['id'], 'person' => (int) $g['person'],
+                             'mitglieder' => $mitglieder, 'platz' => count($mitglieder)];
+                return $d;
+            }
+        }
+        unset($g);
+
+        // 2. Sonst eine neue Gruppe aufmachen — mit der Person, die am
+        //    wenigsten vergeben ist.
         if (count($d['gruppen']) >= MAX_GRUPPEN) return $d;
-        // Reihum: die Person mit den wenigsten Gruppen bekommt die nächste
         $zaehler = array_fill(0, PERSONEN, 0);
-        foreach ($d['gruppen'] as $g) {
-            $p = (int) ($g['person'] ?? 0);
+        foreach ($d['gruppen'] as $g2) {
+            $p = (int) ($g2['person'] ?? 0);
             if ($p >= 0 && $p < PERSONEN) $zaehler[$p]++;
         }
         $person = (int) array_search(min($zaehler), $zaehler, true);
         $d['gruppen'][] = [
-            'id'       => $id,
-            'name'     => $name,
-            'person'   => $person,
-            'punkte'   => 0,
-            'fehler'   => 0,
-            'fertig'   => false,
-            'vortrag'  => false,
-            'beginn'   => time(),
+            'id'         => $neueId,
+            'mitglieder' => [$name],
+            'name'       => $name,
+            'person'     => $person,
+            'punkte'     => 0,
+            'fehler'     => 0,
+            'fertig'     => false,
+            'vortrag'    => false,
+            'beginn'     => time(),
         ];
+        $ergebnis = ['id' => $neueId, 'person' => $person, 'mitglieder' => [$name], 'platz' => 1];
         return $d;
     });
-    if ($person === null) {
+    if ($ergebnis === null) {
         http_response_code(409);
         echo json_encode(['fehler' => 'Es sind schon sehr viele Gruppen eingetragen.']);
         exit;
     }
-    echo json_encode(['id' => $id, 'person' => $person]);
+    echo json_encode($ergebnis);
+    exit;
+}
+
+/* Fragt ein Gerät, ob die Gruppe inzwischen vollständig ist */
+if ($aktion === 'gruppe') {
+    $id = (string) ($gesendet['id'] ?? $_GET['id'] ?? '');
+    foreach (lesen()['gruppen'] as $g) {
+        if (($g['id'] ?? '') === $id) {
+            echo json_encode([
+                'id'         => $g['id'],
+                'person'     => (int) $g['person'],
+                'mitglieder' => $g['mitglieder'] ?? [],
+                'fertig'     => (bool) ($g['fertig'] ?? false),
+                'punkte'     => (int) ($g['punkte'] ?? 0),
+            ]);
+            exit;
+        }
+    }
+    http_response_code(404);
+    echo json_encode(['fehler' => 'Diese Gruppe gibt es nicht mehr.']);
     exit;
 }
 
@@ -148,14 +205,17 @@ if ($aktion === 'ergebnis') {
         exit;
     }
     $gefunden = false;
-    $daten = aendern(static function (array $d) use ($id, $punkte, $fehler, &$gefunden): array {
+    $schon = false;
+    $daten = aendern(static function (array $d) use ($id, $punkte, $fehler, &$gefunden, &$schon): array {
         foreach ($d['gruppen'] as &$g) {
             if (($g['id'] ?? '') === $id) {
+                $gefunden = true;
+                // Beide Mitglieder können abschicken — es zählt die erste Abgabe
+                if ($g['fertig'] ?? false) { $schon = true; continue; }
                 $g['punkte'] = $punkte;
                 $g['fehler'] = $fehler;
                 $g['fertig'] = true;
                 $g['dauer']  = max(0, time() - (int) ($g['beginn'] ?? time()));
-                $gefunden = true;
             }
         }
         unset($g);
@@ -166,7 +226,18 @@ if ($aktion === 'ergebnis') {
         echo json_encode(['fehler' => 'Diese Gruppe ist nicht eingetragen.']);
         exit;
     }
-    antwort($daten);
+    $stand = null;
+    foreach ($daten['gruppen'] as $g) {
+        if (($g['id'] ?? '') === $id) $stand = $g;
+    }
+    echo json_encode([
+        'stand'      => $daten['stand'] ?? 0,
+        'gruppen'    => array_values($daten['gruppen'] ?? []),
+        'schon'      => $schon,
+        'punkte'     => (int) ($stand['punkte'] ?? 0),
+        'mitglieder' => $stand['mitglieder'] ?? [],
+    ], JSON_UNESCAPED_UNICODE);
+    exit;
 }
 
 if ($aktion === 'vortrag') {

@@ -20,7 +20,9 @@ const sicher = (t) => String(t).replace(/[&<>"']/g, (z) =>
 
 const runde = {
   id: null,        // Kennung der Gruppe auf dem Server
-  gruppe: "",
+  gruppe: "",      // eigener Name
+  mitglieder: [],  // beide Namen der Gruppe
+  partnerUhr: null,
   person: null,    // Index der Akte
   szene: 0,
   punkte: 0,
@@ -73,21 +75,23 @@ function zeigeStart() {
       <p class="eyebrow"><span>Expertenrunde</span><span>1939 – 1944</span><span>6 Personen</span></p>
       <h1>Wer waren<br>sie?</h1>
       <p class="untertitel">Sechs Menschen, sechs Attentate — ihr übernehmt eines davon</p>
-      <p class="lage">Gleich bekommt ihr <strong>eine der sechs Personen zugeteilt</strong>. Ihr lest ihre
-      Geschichte, trefft drei Entscheidungen, die sie wirklich treffen musste — und stellt sie danach
-      der Klasse in <strong>90 Sekunden</strong> vor. Alle anderen lernen diese Person nur von euch.</p>
+      <p class="lage">Trag deinen Namen ein. Du bekommst <strong>eine Partnerin oder einen Partner
+      zugeteilt</strong> — und mit ihr oder ihm zusammen <strong>eine der sechs Personen</strong>.
+      Ihr lest ihre Geschichte, trefft drei Entscheidungen, die sie wirklich treffen musste, und stellt
+      sie danach der Klasse in <strong>90 Sekunden</strong> vor. Alle anderen lernen diese Person nur von euch.</p>
       <ul class="regeln">
         <li><span class="marker">01</span><span><b>Drei Entscheidungen, je 100 Punkte.</b> Zweiter Versuch 60, dritter 30. Nichts geht verloren, wenn ihr falsch liegt.</span></li>
         <li><span class="marker">02</span><span><b>Richtig ist,</b> was damals wirklich entschieden wurde — nicht, was am klügsten klingt.</span></li>
-        <li><span class="marker">03</span><span><b>Vortragsbonus: 200 Punkte.</b> Die beste Gruppe je Person trägt vor.</span></li>
-        <li><span class="marker">04</span><span><b>Lest sorgfältig.</b> Was ihr nicht lest, könnt ihr nachher nicht erzählen.</span></li>
+        <li><span class="marker">03</span><span><b>Ihr seid immer zu zweit.</b> Entscheidet gemeinsam — es zählt, was zuerst abgeschickt wird.</span></li>
+        <li><span class="marker">04</span><span><b>Vortragsbonus: 200 Punkte.</b> Die beste Gruppe je Person trägt vor.</span></li>
+        <li><span class="marker">05</span><span><b>Lest sorgfältig.</b> Was ihr nicht lest, könnt ihr nachher nicht erzählen.</span></li>
       </ul>
       <div class="feld">
-        <label for="gruppe">Eure Namen</label>
-        <input id="gruppe" type="text" maxlength="28" placeholder="Mia und Jonas" autocomplete="off">
+        <label for="gruppe">Dein Name</label>
+        <input id="gruppe" type="text" maxlength="28" placeholder="Mia K." autocomplete="off">
       </div>
       <div class="knopfreihe">
-        <button class="knopf" id="los">Person zuteilen lassen</button>
+        <button class="knopf" id="los">Gruppe zuteilen lassen</button>
         <span class="meldung" id="meldung"></span>
       </div>
     </article>`);
@@ -100,6 +104,7 @@ function zeigeStart() {
     $("#weiter-mit").addEventListener("click", (e) => {
       e.preventDefault();
       Object.assign(runde, gemerkt, { szene: 0, punkte: 0, fehler: 0 });
+      if (!Array.isArray(runde.mitglieder)) runde.mitglieder = [runde.gruppe];
       zeigeZuteilung();
     });
   }
@@ -117,7 +122,7 @@ function gespeichert() {
 }
 
 function merken() {
-  try { localStorage.setItem(SPEICHER, JSON.stringify({ id: runde.id, gruppe: runde.gruppe, person: runde.person })); }
+  try { localStorage.setItem(SPEICHER, JSON.stringify({ id: runde.id, gruppe: runde.gruppe, mitglieder: runde.mitglieder, person: runde.person })); }
   catch (e) { /* Privatmodus */ }
 }
 
@@ -136,7 +141,8 @@ async function zuteilen() {
     if (!antwort.ok || !inhalt || typeof inhalt.person !== "number") {
       throw new Error((inhalt && inhalt.fehler) || "Die Zuteilung antwortet nicht.");
     }
-    Object.assign(runde, { id: inhalt.id, gruppe: name, person: inhalt.person, szene: 0, punkte: 0, fehler: 0 });
+    Object.assign(runde, { id: inhalt.id, gruppe: name, mitglieder: inhalt.mitglieder || [name],
+      person: inhalt.person, szene: 0, punkte: 0, fehler: 0 });
     merken();
     zeigeZuteilung();
   } catch (fehler) {
@@ -147,6 +153,28 @@ async function zuteilen() {
 
 /* --- Zuteilung ------------------------------------------------------- */
 
+function gruppenname() {
+  return runde.mitglieder.length ? runde.mitglieder.join(" + ") : runde.gruppe;
+}
+
+function partnerFeld() {
+  const [eins, zwei] = runde.mitglieder;
+  return `
+    <div class="gruppe" id="gruppenfeld">
+      <span class="gruppe__kopf">Eure Gruppe</span>
+      <div class="gruppe__namen">
+        <span class="gruppe__name">${sicher(eins || runde.gruppe)}</span>
+        <span class="gruppe__plus">+</span>
+        ${zwei
+          ? `<span class="gruppe__name">${sicher(zwei)}</span>`
+          : `<span class="gruppe__name gruppe__name--wartet">wartet auf die zweite Person …</span>`}
+      </div>
+      <p class="leise">${zwei
+        ? "Setzt euch zusammen an ein Gerät und entscheidet gemeinsam."
+        : "Du kannst schon anfangen zu lesen. Sobald jemand dazukommt, erscheint der Name hier."}</p>
+    </div>`;
+}
+
 function zeigeZuteilung() {
   const k = STORY.kapitel[runde.person];
   setzeSzene(k.szene);
@@ -154,6 +182,7 @@ function zeigeZuteilung() {
   male(`
     <article class="karte">
       <p class="eyebrow"><span>Eure Person</span><span>Akte ${k.nr}</span><span>${sicher(k.kurzdatum)}</span></p>
+      ${partnerFeld()}
       <h2>${sicher(k.person.split(",")[0])}</h2>
       <div class="daten">
         <div><span class="k">Datum</span><span class="w">${sicher(k.datum)}</span></div>
@@ -163,7 +192,35 @@ function zeigeZuteilung() {
       <p class="lage">${k.intro}</p>
       <div class="knopfreihe"><button class="knopf" id="weiter">Erste Entscheidung</button></div>
     </article>`);
-  $("#weiter").addEventListener("click", zeigeSzene);
+  $("#weiter").addEventListener("click", () => { partnerSucheBeenden(); zeigeSzene(); });
+  if (runde.mitglieder.length < 2) partnerSuchen();
+}
+
+/* Wartet darauf, dass die zweite Person dazukommt, und trägt sie nach */
+function partnerSuchen() {
+  partnerSucheBeenden();
+  runde.partnerUhr = setInterval(async () => {
+    try {
+      const antwort = await fetch(`${ENDPUNKT}?aktion=gruppe&id=${encodeURIComponent(runde.id)}`, { cache: "no-store" });
+      if (!antwort.ok) return;
+      const inhalt = await antwort.json();
+      if (!inhalt || !Array.isArray(inhalt.mitglieder)) return;
+      if (inhalt.mitglieder.length > runde.mitglieder.length) {
+        runde.mitglieder = inhalt.mitglieder;
+        merken();
+        const feld = $("#gruppenfeld");
+        if (feld) {
+          feld.outerHTML = partnerFeld();
+          $("#gruppenfeld").classList.add("gruppe--neu");
+        }
+        if (runde.mitglieder.length >= 2) partnerSucheBeenden();
+      }
+    } catch (e) { /* beim nächsten Versuch wieder */ }
+  }, 3000);
+}
+
+function partnerSucheBeenden() {
+  if (runde.partnerUhr) { clearInterval(runde.partnerUhr); runde.partnerUhr = null; }
 }
 
 /* --- Entscheidungen -------------------------------------------------- */
@@ -187,7 +244,8 @@ function zeigeSzene() {
 
   male(`
     <article class="karte">
-      <p class="eyebrow"><span>Akte ${k.nr} · ${sicher(k.kurzdatum)}</span><span>Entscheidung ${runde.szene + 1} von 3</span></p>
+      <p class="eyebrow"><span>Akte ${k.nr} · ${sicher(k.kurzdatum)}</span>
+        <span>Entscheidung ${runde.szene + 1} von 3</span><span>${sicher(gruppenname())}</span></p>
       <p class="lage">${s.lage}</p>
       <p class="frage">${s.frage}</p>
       <ul class="optionen" id="optionen">
@@ -254,7 +312,7 @@ function zeigeVortrag() {
   kopf();
   male(`
     <article class="karte karte--weit">
-      <p class="eyebrow"><span>Akte ${k.nr} · Ausgang</span><span>${sicher(k.kurzdatum)}</span></p>
+      <p class="eyebrow"><span>Akte ${k.nr} · Ausgang</span><span>${sicher(k.kurzdatum)}</span><span>${sicher(gruppenname())}</span></p>
       <h2>${sicher(k.epilog.titel)}</h2>
       <p class="lage">${k.epilog.text}</p>
       <ul class="fakten">${k.epilog.fakten.map((f) => `<li><span>${f}</span></li>`).join("")}</ul>
@@ -292,24 +350,28 @@ async function melden() {
     if (!antwort.ok || !inhalt || !Array.isArray(inhalt.gruppen)) {
       throw new Error((inhalt && inhalt.fehler) || "Die Tafel antwortet nicht.");
     }
-    zeigeAbschluss(true);
+    if (Array.isArray(inhalt.mitglieder) && inhalt.mitglieder.length) runde.mitglieder = inhalt.mitglieder;
+    if (inhalt.schon) runde.punkte = inhalt.punkte;   // die Partnerin war schneller
+    zeigeAbschluss(true, !!inhalt.schon);
   } catch (fehler) {
     $("#fertig").disabled = false;
     $("#meldung").textContent = fehler.message + " Meldet euch mündlich.";
   }
 }
 
-function zeigeAbschluss(gesendet) {
+function zeigeAbschluss(gesendet, schon) {
   const k = STORY.kapitel[runde.person];
   kopf();
   male(`
     <article class="karte karte--weit">
-      <p class="eyebrow"><span>${sicher(runde.gruppe)}</span><span>Akte ${k.nr}</span></p>
+      <p class="eyebrow"><span>${sicher(gruppenname())}</span><span>Akte ${k.nr}</span></p>
       <div class="ergebnis">
         <span class="ergebnis__zahl">${runde.punkte}</span>
         <div class="ergebnis__neben">
           <span class="leise">von ${HOECHST} Punkten · ${runde.fehler} ${runde.fehler === 1 ? "Fehlversuch" : "Fehlversuche"}</span>
-          <span class="leise">${gesendet ? "Ihr steht an der Tafel. Der Vortragsbonus bringt bis zu 200 Punkte dazu." : "Nicht gesendet — meldet euch mündlich."}</span>
+          <span class="leise">${!gesendet ? "Nicht gesendet — meldet euch mündlich."
+            : schon ? "Eure Gruppe war schon eingetragen — das zählt. Ihr steht an der Tafel."
+            : "Ihr steht an der Tafel. Der Vortragsbonus bringt bis zu 200 Punkte dazu."}</span>
         </div>
       </div>
       <div class="vortrag vortrag--gross">
