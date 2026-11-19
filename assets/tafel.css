@@ -191,3 +191,30 @@ body.tafel {
   color: var(--oxid);
 }
 .qrfehlt span { font-size: .88rem; line-height: 1.45; color: var(--gedaempft); }
+
+/* Woher die Liste kommt: Server oder Eingabe von Hand */
+.tafel__quelle {
+  margin-left: auto;
+  font-family: var(--schrift-daten);
+  font-size: .72rem;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--gedaempft);
+  display: inline-flex;
+  align-items: center;
+  gap: .45rem;
+}
+.tafel__quelle.ist-live { color: var(--messing-2); }
+.tafel__quelle.ist-live::before {
+  content: "";
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--messing);
+  animation: pochen 2.4s ease-in-out infinite;
+}
+@keyframes pochen { 0%, 100% { opacity: 1; } 50% { opacity: .25; } }
+.tafel__quelle + .tafel__zaehler { margin-left: var(--s3); }
+
+/* Im Live-Betrieb ist die Eingabe nur noch Rückfallweg */
+.eingabe--neben { opacity: .75; }
+.eingabe--neben:focus-within { opacity: 1; }

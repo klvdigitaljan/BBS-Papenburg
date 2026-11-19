@@ -6,6 +6,8 @@
  * Prüfziffer, damit Tippfehler auffallen. Alles bleibt in diesem Browser.
  */
 
+const ENDPUNKT = "tafel.php";          // Sammelstelle neben dem Spiel
+const ABSTAND  = 4000;                  // alle 4 Sekunden nachsehen
 const TAFEL_SPEICHER = "dreizehn-minuten.tafel";
 const ADRESS_SPEICHER = "dreizehn-minuten.spieladresse";
 const NOTADRESSE = null;   // unbekannt: dann wird nachgefragt statt geraten
@@ -13,6 +15,9 @@ const NOTADRESSE = null;   // unbekannt: dann wird nachgefragt statt geraten
 const $ = (s) => document.querySelector(s);
 let eintraege = [];
 let zuletzt = null;
+let live = false;      // true, sobald tafel.php antwortet
+let stand = -1;        // Zählerstand der Liste auf dem Server
+let bekannteIds = new Set();
 
 /* --- Ergebnis-Code --------------------------------------------------- */
 
@@ -49,8 +54,73 @@ function laden() {
   catch (e) { eintraege = []; }
 }
 function sichern() {
+  if (live) return;   // im Live-Betrieb führt der Server die Liste
   try { localStorage.setItem(TAFEL_SPEICHER, JSON.stringify(eintraege)); }
   catch (e) { /* Privatmodus: Liste lebt nur bis zum Neuladen */ }
+}
+
+/* --- Gemeinsame Liste über tafel.php ---------------------------------- */
+
+async function vomServer(erstmals) {
+  if (!/^https?:$/.test(location.protocol)) return;
+  try {
+    const antwort = await fetch(`${ENDPUNKT}?stand=${stand}`, { cache: "no-store" });
+    if (!antwort.ok) throw new Error("HTTP " + antwort.status);
+    const daten = await antwort.json();
+    if (!daten || (!Array.isArray(daten.eintraege) && !daten.unveraendert)) {
+      throw new Error("Keine gültige Antwort — läuft auf dem Server PHP?");
+    }
+    if (!live) { live = true; quelleZeigen(); }
+    if (daten.unveraendert) return;
+
+    // Neu hinzugekommene Einträge hervorheben
+    const neueIds = (daten.eintraege || []).map((e) => e.id);
+    const frisch = neueIds.find((id) => !bekannteIds.has(id));
+    if (!erstmals && frisch) zuletzt = frisch;
+    bekannteIds = new Set(neueIds);
+
+    stand = daten.stand;
+    eintraege = (daten.eintraege || []).map((e) => ({
+      id: e.id, name: e.name, punkte: e.punkte, fehler: e.fehler, sekunden: e.sekunden
+    }));
+    zeichnen();
+  } catch (fehler) {
+    if (live) { live = false; quelleZeigen(); }
+    else if (erstmals) { live = false; quelleZeigen(); }
+  }
+}
+
+function quelleZeigen() {
+  const feld = $("#quelle");
+  feld.hidden = false;
+  feld.textContent = live ? "Live — die Geräte tragen sich selbst ein" : "Eingabe von Hand";
+  feld.className = "tafel__quelle " + (live ? "ist-live" : "");
+  $("#eingabe").classList.toggle("eingabe--neben", live);
+}
+
+async function anServerSenden(name, code, werte) {
+  const antwort = await fetch(ENDPUNKT, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name, code, punkte: werte.punkte, fehler: werte.fehler, sekunden: werte.sekunden })
+  });
+  if (!antwort.ok) {
+    const inhalt = await antwort.json().catch(() => ({}));
+    throw new Error(inhalt.fehler || "Die Sammelstelle hat den Eintrag abgelehnt.");
+  }
+  stand = -1;                 // beim nächsten Abruf alles neu holen
+  await vomServer(false);
+}
+
+function schluesselHolen() {
+  let schluessel = null;
+  try { schluessel = localStorage.getItem("dreizehn-minuten.schluessel"); } catch (e) { /* egal */ }
+  if (!schluessel) {
+    schluessel = window.prompt("Schlüssel zum Leeren der Liste (steht oben in tafel.php):", "");
+    if (!schluessel) return null;
+    try { localStorage.setItem("dreizehn-minuten.schluessel", schluessel); } catch (e) { /* egal */ }
+  }
+  return schluessel;
 }
 
 /* --- Anzeige --------------------------------------------------------- */
@@ -79,7 +149,9 @@ function zeichnen() {
   $("#leerhinweis").hidden = eintraege.length > 0;
   if (rest > 0) $("#leerhinweis").hidden = false;
   $("#leerhinweis").textContent = eintraege.length === 0
-    ? "Noch keine Ergebnisse. Trage unten das erste ein."
+    ? (live
+        ? "Noch keine Ergebnisse. Sobald jemand fertig ist, erscheint der Name hier von selbst."
+        : "Noch keine Ergebnisse. Trage unten das erste ein.")
     : `… und ${rest} weitere`;
 }
 
@@ -147,6 +219,16 @@ function eintragen(e) {
   const gelesen = codeLesen(code);
   if (gelesen.problem) { melden(gelesen.problem, false); codeFeld.focus(); codeFeld.select(); return; }
 
+  const leeren = () => { nameFeld.value = ""; codeFeld.value = ""; nameFeld.focus(); };
+
+  if (live) {
+    melden("Wird eingetragen …", true);
+    anServerSenden(name, code, gelesen)
+      .then(() => { melden(`${name} eingetragen: ${gelesen.punkte} Punkte.`, true); leeren(); })
+      .catch((f) => melden(f.message, false));
+    return;
+  }
+
   const eintrag = {
     id: Date.now() + "-" + Math.random().toString(36).slice(2, 7),
     name,
@@ -159,27 +241,51 @@ function eintragen(e) {
   sichern();
   zeichnen();
   melden(`${name} eingetragen: ${eintrag.punkte} Punkte.`, true);
-  nameFeld.value = "";
-  codeFeld.value = "";
-  nameFeld.focus();
+  leeren();
 }
 
 function start() {
   laden();
   qrZeichnen();
   zeichnen();
+  vomServer(true).then(() => { if (live) setInterval(() => vomServer(false), ABSTAND); });
   $("#eingabe").addEventListener("submit", eintragen);
   $("#ename").focus();
 
-  $("#leeren").addEventListener("click", () => {
+  $("#leeren").addEventListener("click", async () => {
     if (!eintraege.length) return;
-    if (window.confirm(`Alle ${eintraege.length} Ergebnisse löschen?`)) {
-      eintraege = [];
-      zuletzt = null;
-      sichern();
-      zeichnen();
-      melden("Liste geleert.", true);
+    if (!window.confirm(`Alle ${eintraege.length} Ergebnisse löschen?`)) return;
+
+    if (live) {
+      const schluessel = schluesselHolen();
+      if (!schluessel) return;
+      try {
+        const antwort = await fetch(`${ENDPUNKT}?aktion=neu`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ schluessel })
+        });
+        if (!antwort.ok) {
+          try { localStorage.removeItem("dreizehn-minuten.schluessel"); } catch (e) { /* egal */ }
+          const inhalt = await antwort.json().catch(() => ({}));
+          melden(inhalt.fehler || "Die Liste konnte nicht geleert werden.", false);
+          return;
+        }
+        stand = -1;
+        zuletzt = null;
+        await vomServer(true);
+        melden("Liste geleert. Neue Runde läuft.", true);
+      } catch (f) {
+        melden("Die Sammelstelle war nicht erreichbar.", false);
+      }
+      return;
     }
+
+    eintraege = [];
+    zuletzt = null;
+    sichern();
+    zeichnen();
+    melden("Liste geleert.", true);
   });
 
   $("#adresse-aendern").addEventListener("click", () => {

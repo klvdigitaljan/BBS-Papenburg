@@ -81,6 +81,7 @@ assets/scenes.js        die sieben gezeichneten Hintergrundkulissen (SVG)
 assets/game.js          Spiellogik, Wertung, Rangliste
 assets/styles.css       Gestaltung
 tafel.html              Tafelansicht: QR-Code und Bestenliste der Klasse
+tafel.php               Sammelstelle: nimmt die Ergebnisse der Geräte entgegen
 assets/tafel.js         Logik der Tafelansicht, assets/tafel.css deren Gestaltung
 assets/qr.js            QR-Code-Erzeuger (Eigenbau, ohne fremde Bibliothek)
 tools/build.mjs         baut die Einzeldateien in dist/
@@ -109,7 +110,33 @@ Das erzeugt `dist/hitler-attentaeter-spiel.html` und `dist/tafel-bestenliste.htm
 **QR-Code auf die Spieladresse** — die Schülerinnen und Schüler halten die iPad-Kamera
 darauf und sind im Spiel. Rechts wächst während der Stunde die **Bestenliste der Klasse**.
 
-So kommen die Ergebnisse zusammen:
+### Die Namen erscheinen von selbst (empfohlen)
+
+Liegt `tafel.php` neben dem Spiel und beherrscht der Webspace PHP — bei den üblichen
+Hostern der Fall —, trägt sich **jedes Gerät am Ende selbst ein**. Niemand muss etwas
+abtippen: Die Schülerin gibt zu Beginn des Spiels ihren Namen ein, und sobald sie fertig
+ist, steht sie an der Tafel. Die Tafelansicht fragt alle vier Sekunden nach und zeigt oben
+„Live“ an.
+
+Gespeichert wird in `bestenliste.json` neben `tafel.php`; die Datei legt sich selbst an.
+Der Ordner muss dafür beschreibbar sein — bei üblichen Hostern ist er das.
+
+Drei Dinge zum Einstellen und Wissen:
+
+* **Schlüssel ändern.** Oben in `tafel.php` steht `const SCHLUESSEL = 'bbs-tafel';`.
+  Er wird beim Leeren der Liste abgefragt, damit niemand sie mitten in der Stunde löscht.
+* **Namen liegen auf dem Server.** Anders als beim Handbetrieb verlassen die Namen den
+  Raum. Für die Schule heißt das: Vornamen oder Kürzel genügen, und „Liste leeren“ nach
+  der Stunde löscht sie wieder.
+* **Schummeln** ist erschwert, nicht ausgeschlossen: Der Server rechnet den Ergebnis-Code
+  nach und weist unpassende Werte ab. Wer sich auskennt, kann trotzdem etwas einschicken.
+
+### Ohne PHP: Eingabe von Hand
+
+Antwortet `tafel.php` nicht, schalten beide Seiten von selbst um — das Spiel zeigt dann
+den Ergebnis-Code zum Vorlesen, die Tafel die Eingabefelder. Es geht nichts verloren.
+
+So kommen die Ergebnisse dann zusammen:
 
 1. Am Ende des Spiels zeigt jedes Gerät einen neunstelligen **Ergebnis-Code**,
    zum Beispiel `2X0000ZOM`. Darin stecken Punkte, Fehlentscheidungen und Spielzeit.

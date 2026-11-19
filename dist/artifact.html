@@ -2129,9 +2129,9 @@ function zeigeFinale() {
       <p class="lage">${STORY.fazit.text}</p>
       <blockquote class="zitat">${STORY.fazit.zitat}<cite>${sicher(STORY.fazit.zitatQuelle)}</cite></blockquote>
       <div class="codekarte">
-        <span class="marke marke--ok">Für die Bestenliste an der Tafel</span>
-        <p class="leise">Sag deinen Namen und diesen Code durch — oder tippe ihn selbst am Lehrerrechner ein.</p>
-        <div class="codezeile">
+        <span class="marke marke--ok" id="tafelmarke">Wird an die Tafel geschickt …</span>
+        <p class="leise" id="tafeltext">Einen Augenblick, dein Ergebnis geht an die Bestenliste.</p>
+        <div class="codezeile" id="codezeile" hidden>
           <code id="ergebniscode">${ergebnisCode(spiel.punkte, spiel.fehler, eintrag.sekunden)}</code>
           <button class="knopf knopf--leise" id="code-kopieren" type="button">Kopieren</button>
         </div>
@@ -2144,6 +2144,7 @@ function zeigeFinale() {
     </article>`);
 
   zeichneRangliste($("#ranglistenbereich"), eintrag);
+  anTafelSenden(eintrag);
   $("#code-kopieren").addEventListener("click", async (e) => {
     const code = $("#ergebniscode").textContent;
     try {
@@ -2162,6 +2163,67 @@ function zeigeFinale() {
   });
   $("#nochmal").addEventListener("click", zeigeStart);
   $("#drucken").addEventListener("click", () => window.print());
+}
+
+/* --- Ergebnis an die Tafel schicken ----------------------------------- */
+
+/* Liegt tafel.php neben dem Spiel, trägt sich jedes Gerät selbst in die
+   Bestenliste ein. Klappt das nicht — kein PHP, kein Netz, Spiel von einer
+   Datei geöffnet —, wird der Ergebnis-Code zum Vorlesen angezeigt. */
+async function anTafelSenden(eintrag) {
+  const marke = $("#tafelmarke");
+  const text = $("#tafeltext");
+  const code = $("#ergebniscode").textContent;
+
+  const zurueckfallen = (grund) => {
+    marke.className = "marke marke--nein";
+    marke.textContent = "Tafel nicht erreicht";
+    text.innerHTML = `${grund} Sag deinen Namen und diesen Code durch —
+      oder tippe ihn selbst am Lehrerrechner ein.`;
+    $("#codezeile").hidden = false;
+  };
+
+  if (!/^https?:$/.test(location.protocol)) {
+    zurueckfallen("Das Spiel läuft nicht über eine Webadresse.");
+    return;
+  }
+
+  const abbruch = new AbortController();
+  const uhr = setTimeout(() => abbruch.abort(), 8000);
+  try {
+    const antwort = await fetch("tafel.php", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: spiel.name,
+        punkte: eintrag.punkte,
+        fehler: eintrag.fehler,
+        sekunden: eintrag.sekunden,
+        code
+      }),
+      signal: abbruch.signal
+    });
+    clearTimeout(uhr);
+    if (!antwort.ok) {
+      const inhalt = await antwort.json().catch(() => ({}));
+      zurueckfallen(inhalt.fehler ? `Die Tafel meldet: ${inhalt.fehler}` : "Die Tafel hat das Ergebnis abgelehnt.");
+      return;
+    }
+    // Läuft auf dem Server kein PHP, kommt der Quelltext zurück statt einer
+    // Antwort — das ist kein Erfolg.
+    const inhalt = await antwort.json().catch(() => null);
+    if (!inhalt || !Array.isArray(inhalt.eintraege)) {
+      zurueckfallen("Die Sammelstelle antwortet nicht richtig (läuft dort PHP?).");
+      return;
+    }
+    marke.className = "marke marke--ok";
+    marke.textContent = "An der Tafel eingetragen";
+    text.innerHTML = `<strong>${sicher(spiel.name)}</strong>, dein Ergebnis steht jetzt
+      vorne in der Bestenliste. Du musst nichts weiter tun.`;
+  } catch (fehler) {
+    clearTimeout(uhr);
+    zurueckfallen("Die Tafel war nicht erreichbar.");
+  }
 }
 
 /* --- Rangliste ------------------------------------------------------- */
