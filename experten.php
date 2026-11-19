@@ -81,6 +81,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET' && ($_GET['aktion'] ?? '') =
                 'mitglieder' => $g['mitglieder'] ?? [],
                 'fertig'     => (bool) ($g['fertig'] ?? false),
                 'punkte'     => (int) ($g['punkte'] ?? 0),
+                'ergebnisse' => $g['ergebnisse'] ?? [],
             ], JSON_UNESCAPED_UNICODE);
             exit;
         }
@@ -132,7 +133,7 @@ if ($aktion === 'zuteilen') {
         // 1. Gibt es eine Gruppe, in der noch ein Platz frei ist? Dann dazu.
         foreach ($d['gruppen'] as &$g) {
             $mitglieder = $g['mitglieder'] ?? [];
-            if (count($mitglieder) < GRUPPENGROESSE && !($g['fertig'] ?? false)) {
+            if (count($mitglieder) < GRUPPENGROESSE && !($g['abgegeben'] ?? 0)) {
                 $mitglieder[] = $name;
                 $g['mitglieder'] = $mitglieder;
                 $g['name'] = implode(' + ', $mitglieder);
@@ -186,6 +187,7 @@ if ($aktion === 'gruppe') {
                 'mitglieder' => $g['mitglieder'] ?? [],
                 'fertig'     => (bool) ($g['fertig'] ?? false),
                 'punkte'     => (int) ($g['punkte'] ?? 0),
+                'ergebnisse' => $g['ergebnisse'] ?? [],
             ]);
             exit;
         }
@@ -197,6 +199,7 @@ if ($aktion === 'gruppe') {
 
 if ($aktion === 'ergebnis') {
     $id = (string) ($gesendet['id'] ?? '');
+    $platz = max(1, min(GRUPPENGROESSE, (int) ($gesendet['platz'] ?? 1)));
     $punkte = (int) ($gesendet['punkte'] ?? -1);
     $fehler = (int) ($gesendet['fehler'] ?? 0);
     if ($punkte < 0 || $punkte > 300 || $fehler < 0 || $fehler > 99) {
@@ -206,17 +209,37 @@ if ($aktion === 'ergebnis') {
     }
     $gefunden = false;
     $schon = false;
-    $daten = aendern(static function (array $d) use ($id, $punkte, $fehler, &$gefunden, &$schon): array {
+    $daten = aendern(static function (array $d) use ($id, $platz, $punkte, $fehler, &$gefunden, &$schon): array {
         foreach ($d['gruppen'] as &$g) {
-            if (($g['id'] ?? '') === $id) {
-                $gefunden = true;
-                // Beide Mitglieder können abschicken — es zählt die erste Abgabe
-                if ($g['fertig'] ?? false) { $schon = true; continue; }
-                $g['punkte'] = $punkte;
-                $g['fehler'] = $fehler;
-                $g['fertig'] = true;
-                $g['dauer']  = max(0, time() - (int) ($g['beginn'] ?? time()));
+            if (($g['id'] ?? '') !== $id) continue;
+            $gefunden = true;
+            $anzahl = max(1, count($g['mitglieder'] ?? [1]));
+            $ergebnisse = $g['ergebnisse'] ?? [];
+            // Jedes Mitglied spielt auf dem eigenen Gerät und schickt selbst ab
+            if (isset($ergebnisse[$platz - 1]) && $ergebnisse[$platz - 1] !== null) {
+                $schon = true;
+            } else {
+                $ergebnisse[$platz - 1] = [
+                    'punkte' => $punkte,
+                    'fehler' => $fehler,
+                    'dauer'  => max(0, time() - (int) ($g['beginn'] ?? time())),
+                ];
             }
+            for ($i = 0; $i < $anzahl; $i++) {
+                if (!array_key_exists($i, $ergebnisse)) $ergebnisse[$i] = null;
+            }
+            ksort($ergebnisse);
+            $g['ergebnisse'] = $ergebnisse;
+
+            // Gruppenwert: Schnitt der abgegebenen Durchläufe
+            $abgegeben = array_values(array_filter($ergebnisse, static fn($e) => is_array($e)));
+            $g['abgegeben'] = count($abgegeben);
+            $g['punkte'] = $abgegeben
+                ? (int) round(array_sum(array_column($abgegeben, 'punkte')) / count($abgegeben))
+                : 0;
+            $g['fehler'] = $abgegeben ? (int) array_sum(array_column($abgegeben, 'fehler')) : 0;
+            $g['dauer']  = $abgegeben ? (int) max(array_column($abgegeben, 'dauer')) : 0;
+            $g['fertig'] = count($abgegeben) >= $anzahl;
         }
         unset($g);
         return $d;
@@ -235,6 +258,9 @@ if ($aktion === 'ergebnis') {
         'gruppen'    => array_values($daten['gruppen'] ?? []),
         'schon'      => $schon,
         'punkte'     => (int) ($stand['punkte'] ?? 0),
+        'ergebnisse' => $stand['ergebnisse'] ?? [],
+        'abgegeben'  => (int) ($stand['abgegeben'] ?? 0),
+        'fertig'     => (bool) ($stand['fertig'] ?? false),
         'mitglieder' => $stand['mitglieder'] ?? [],
     ], JSON_UNESCAPED_UNICODE);
     exit;

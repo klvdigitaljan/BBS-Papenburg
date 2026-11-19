@@ -103,16 +103,23 @@ function zeichnen() {
           <ul class="station__gruppen">
             ${meine.map((g) => {
               const mitglieder = Array.isArray(g.mitglieder) && g.mitglieder.length ? g.mitglieder : [g.name];
+              const ergebnisse = Array.isArray(g.ergebnisse) ? g.ergebnisse : [];
               const allein = mitglieder.length < 2;
-              const namen = sicher(mitglieder.join(" + ")) + (allein ? ` <span class="offen">+ frei</span>` : "");
+              // Jeder spielt auf dem eigenen Gerät — beide Einzelwerte zeigen
+              const namen = mitglieder.map((m, i) => {
+                const e = ergebnisse[i];
+                return `${sicher(m)}<span class="einzeln">${e ? " " + e.punkte : " …"}</span>`;
+              }).join(" + ") + (allein ? ` <span class="offen">+ frei</span>` : "");
+              const abgegeben = (g.abgegeben != null) ? g.abgegeben : ergebnisse.filter(Boolean).length;
               const lage = g.vortrag ? "vorgetragen"
                 : g.fertig ? (beste && g.id === beste.id ? "trägt vor" : "fertig")
+                : abgegeben ? `${abgegeben} von ${mitglieder.length}`
                 : allein ? "sucht Partner" : "liest";
               return `
               <li class="${beste && g.id === beste.id ? "beste" : ""}">
                 <span>${namen}</span>
                 <span class="lage">${lage}</span>
-                <span class="pkt">${g.fertig ? g.punkte + (g.vortrag ? VORTRAGSBONUS : 0) : "—"}</span>
+                <span class="pkt">${abgegeben ? g.punkte + (g.vortrag ? VORTRAGSBONUS : 0) : "—"}</span>
               </li>`;
             }).join("")}
           </ul>` : `<p class="station__leer">noch keine Gruppe</p>`}

@@ -60,10 +60,13 @@ Entscheidungen und stellt ihre Person danach der Klasse in 90 Sekunden vor.
   erscheint der Name auf beiden Geräten (Abfrage alle drei Sekunden).
   Die Gruppe bekommt die Person, die am wenigsten vergeben ist.
   Die Zuteilung bleibt im Gerät gemerkt.
-* **Abgabe:** Beide dürfen abschicken, es zählt die erste Abgabe; das zweite
-  Gerät bekommt den Stand der Gruppe angezeigt.
+* **Eigenes Gerät:** Beide spielen ihren Durchlauf selbst, niemand muss sein
+  iPad teilen. Für die Gruppe zählt der **Schnitt beider Durchläufe**; wer
+  zuerst fertig ist, sieht „wartet noch auf einen Durchlauf" und bekommt den
+  Gruppenwert nachgetragen, sobald die zweite Person abgibt.
 * **Punkte:** drei Entscheidungen zu je 100 (zweiter Versuch 60, dritter 30),
-  kein Rauswurf, dazu 200 Punkte Vortragsbonus — Höchstzahl 500 für alle gleich.
+  kein Rauswurf. Gruppenwert ist der Schnitt beider Durchläufe, dazu 200 Punkte
+  Vortragsbonus — Höchstzahl 500 für alle gleich.
 * **Vortragsrecht:** die punktbeste fertige Gruppe je Person; die Tafel markiert sie.
   Nach dem Vortrag vergibt die Lehrkraft den Bonus per Klick (Schlüssel nötig).
 * **Zeit:** 2 Min Beitritt, 6 Min lesen und entscheiden, 9–10 Min Vorträge.

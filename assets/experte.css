@@ -180,3 +180,5 @@
 }
 .gruppe p { margin: 0; font-size: .88rem; }
 .station__gruppen .offen { color: #5d646d; font-size: .82em; }
+.station__gruppen .einzeln { font-family: var(--schrift-daten); font-size: .74em; color: var(--messing); }
+.station__gruppen li.beste .einzeln { color: var(--messing-2); }
