@@ -47,6 +47,28 @@ Jedes Gerät führt seine eigene Rangliste (`localStorage`). Für den Klassenwet
 die **Tafelansicht** (siehe unten): Dort laufen die Ergebnisse aller Geräte über einen kurzen
 Ergebnis-Code zusammen.
 
+## Kurzfassung für eine Einzelstunde
+
+Über die Adresszeile lässt sich die Auswahl der Akten steuern — ohne etwas am Spiel
+zu ändern:
+
+| Adresse | Inhalt | Dauer zu zweit |
+|---|---|---|
+| `…/` | alle sechs Akten, 24 Entscheidungen | ~35 Min |
+| `…/?kurz=1` | Elser, Smolensk, Stauffenberg — 14 Entscheidungen | ~22 Min |
+| `…/?akten=1,6` | nur Elser und Stauffenberg — 10 Entscheidungen | ~17 Min |
+
+`?akten=` nimmt die Nummern der Akten in der gewünschten Reihenfolge. Unsinnige Angaben
+führen zur Vollfassung. Punktevergabe, Zeitleiste und Höchstpunktzahl richten sich
+automatisch nach der Auswahl (Kurzfassung: 2280 statt 3780 Punkte).
+
+Damit der QR-Code an der Tafel auf die gewünschte Fassung zeigt, die Tafelansicht so
+aufrufen — oder unten auf „Adresse ändern“ klicken:
+
+```
+tafel.html?spiel=https://eure-adresse/?kurz=1
+```
+
 ## Einsatz im Unterricht
 
 * **Zeitbedarf:** etwa 25–40 Minuten für einen Durchgang, je nach Lesetempo.

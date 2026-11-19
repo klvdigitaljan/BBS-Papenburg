@@ -17,7 +17,7 @@ const SPEICHER          = "dreizehn-minuten.rangliste";
 /* Pfad zum Schullogo. tools/build.mjs ersetzt diese Zeichenkette beim Bauen der
    Einzeldatei durch das eingebettete Bild, damit die Datei ohne Ordner auskommt.
    Fehlt die Datei, bleibt nur der Schriftzug stehen — kein kaputtes Bildsymbol. */
-const LOGO_QUELLE = "assets/logo.png?v=5";
+const LOGO_QUELLE = "assets/logo.png?v=6";
 
 function schulmarke(klasse) {
   return `<span class="schulmarke ${klasse || ""}">
@@ -25,6 +25,30 @@ function schulmarke(klasse) {
     <span class="schulname">BBS Papenburg<b>Technik und Wirtschaft</b></span>
   </span>`;
 }
+
+/* Auswahl der Akten über die Adresszeile:
+     ?kurz=1        → Kurzfassung: Elser, Smolensk, Stauffenberg (14 Entscheidungen)
+     ?akten=1,6     → nur diese Akten, in dieser Reihenfolge
+   ohne Angabe      → alle sechs Akten
+   Die Wertung, die Zeitleiste und die Höchstpunktzahl richten sich danach. */
+function gewaehlteAkten() {
+  const parameter = new URLSearchParams(location.search);
+  let nummern = null;
+  if (parameter.has("akten")) {
+    nummern = parameter.get("akten").split(/[^0-9]+/).filter(Boolean).map(Number);
+  } else if (parameter.get("kurz") === "1") {
+    nummern = [1, 2, 6];
+  }
+  if (!nummern || !nummern.length) return STORY.kapitel;
+  const auswahl = nummern
+    .filter((n) => n >= 1 && n <= STORY.kapitel.length)
+    .map((n) => STORY.kapitel[n - 1]);
+  return auswahl.length ? auswahl : STORY.kapitel;
+}
+
+const AKTEN = gewaehlteAkten();
+const KURZFASSUNG = AKTEN.length < STORY.kapitel.length;
+const ENTSCHEIDUNGEN = AKTEN.reduce((summe, k) => summe + k.szenen.length, 0);
 
 const spiel = {
   name: "",
@@ -100,13 +124,13 @@ function zeichneHud(sichtbar) {
   hud.hidden = !sichtbar;
   if (!sichtbar) return;
 
-  const k = STORY.kapitel[spiel.kapitel];
+  const k = AKTEN[spiel.kapitel];
   const punkte = spiel.punkte + spiel.kapitelPunkte;
 
   hud.innerHTML = `
     <span class="hud__akte">${k ? sicher(k.akte) : "AKTE"}</span>
-    <span class="zeitleiste" role="img" aria-label="Fortschritt: Akte ${spiel.kapitel + 1} von ${STORY.kapitel.length}">
-      ${STORY.kapitel.map((_, i) => `<span class="zeitleiste__punkt
+    <span class="zeitleiste" role="img" aria-label="Fortschritt: Akte ${spiel.kapitel + 1} von ${AKTEN.length}">
+      ${AKTEN.map((_, i) => `<span class="zeitleiste__punkt
         ${i < spiel.kapitel ? "erledigt" : ""} ${i === spiel.kapitel ? "aktiv" : ""}"></span>`).join("")}
     </span>
     <span class="hud__rest">
@@ -126,7 +150,8 @@ function zeigeStart() {
   male(`
     <article class="karte karte--weit titelblock">
       ${schulmarke("schulmarke--gross")}
-      <p class="eyebrow"><span>Geschichte interaktiv</span><span>1939 – 1944</span><span>6 Akten</span></p>
+      <p class="eyebrow"><span>Geschichte interaktiv</span><span>1939 – 1944</span>
+        <span>${AKTEN.length} ${AKTEN.length === 1 ? "Akte" : "Akten"}${KURZFASSUNG ? " · Kurzfassung" : ""}</span></p>
       <h1>Hitler-<br>Attentäter-<br>Spiel</h1>
       <p class="untertitel">Sechs Attentate auf Hitler — und warum jedes scheiterte</p>
       <p class="lage">Du übernimmst nacheinander die Rolle von sechs Menschen, die versucht haben,
@@ -135,7 +160,7 @@ function zeigeStart() {
       wirklich entschieden wurde.</strong> Wer die Geschichte kennt, kommt durch die Akte —
       und überlebt jedes Attentat genauso, wie Hitler es damals überlebte.</p>
       <ul class="regeln">
-        <li><span class="marker">01</span><span><b>Sechs Akten, 24 Entscheidungen.</b> Jede richtige Entscheidung bringt bis zu ${PUNKTE_PRO_SZENE} Punkte.</span></li>
+        <li><span class="marker">01</span><span><b>${AKTEN.length === 6 ? "Sechs" : AKTEN.length} ${AKTEN.length === 1 ? "Akte" : "Akten"}, ${ENTSCHEIDUNGEN} Entscheidungen.</b> Jede richtige Entscheidung bringt bis zu ${PUNKTE_PRO_SZENE} Punkte.</span></li>
         <li><span class="marker">02</span><span><b>Drei Spuren pro Akte.</b> Jeder Fehlversuch kostet eine Spur und ${ABZUG_PRO_FEHLER} Punkte. Du darfst weiterraten — aber es wird teuer.</span></li>
         <li><span class="marker">03</span><span><b>Sind alle Spuren weg,</b> beginnt die Akte von vorn und die Punkte dieser Akte verfallen.</span></li>
         <li><span class="marker">04</span><span><b>Fehlerfreie Akte:</b> +${BONUS_KAPITEL} Punkte. Fehlerfreies Spiel: +${BONUS_AKTE} Punkte.</span></li>
@@ -172,7 +197,7 @@ function spielStarten() {
 /* --- Aktendeckel ----------------------------------------------------- */
 
 function zeigeKapitel() {
-  const k = STORY.kapitel[spiel.kapitel];
+  const k = AKTEN[spiel.kapitel];
   spiel.szene = 0;
   spiel.spuren = SPUREN;
   spiel.kapitelPunkte = 0;
@@ -206,7 +231,7 @@ function mischen(anzahl) {
 }
 
 function zeigeSzene() {
-  const k = STORY.kapitel[spiel.kapitel];
+  const k = AKTEN[spiel.kapitel];
   const s = k.szenen[spiel.szene];
   const folge = mischen(s.optionen.length);
   spiel.fehlversuche = 0;
@@ -236,7 +261,7 @@ function zeigeSzene() {
 }
 
 function waehle(i) {
-  const k = STORY.kapitel[spiel.kapitel];
+  const k = AKTEN[spiel.kapitel];
   const s = k.szenen[spiel.szene];
   const o = s.optionen[i];
   const knopf = document.querySelector(`.option[data-i="${i}"]`);
@@ -293,7 +318,7 @@ function waehle(i) {
 /* --- Kapitel gescheitert --------------------------------------------- */
 
 function zeigeGescheitert() {
-  const k = STORY.kapitel[spiel.kapitel];
+  const k = AKTEN[spiel.kapitel];
   const verfallen = spiel.kapitelPunkte;
   male(`
     <article class="karte">
@@ -311,14 +336,14 @@ function zeigeGescheitert() {
 /* --- Epilog eines Kapitels ------------------------------------------- */
 
 function zeigeEpilog() {
-  const k = STORY.kapitel[spiel.kapitel];
+  const k = AKTEN[spiel.kapitel];
   let bonus = 0;
   if (spiel.kapitelFehler === 0) { bonus = BONUS_KAPITEL; spiel.kapitelPunkte += bonus; }
   spiel.punkte += spiel.kapitelPunkte;
   spiel.kapitelPunkte = 0;
   zeichneHud(true);
 
-  const letzte = spiel.kapitel === STORY.kapitel.length - 1;
+  const letzte = spiel.kapitel === AKTEN.length - 1;
   male(`
     <article class="karte">
       <p class="eyebrow"><span>Akte ${k.nr} · Ausgang</span><span>${sicher(k.kurzdatum)}</span></p>
@@ -327,7 +352,7 @@ function zeigeEpilog() {
       <ul class="fakten">${k.epilog.fakten.map((f) => `<li><span>${f}</span></li>`).join("")}</ul>
       ${bonus ? `<p class="quelle">Akte ohne Fehlentscheidung abgeschlossen: +${bonus} Punkte.</p>` : ""}
       <div class="knopfreihe">
-        <button class="knopf" id="weiter">${letzte ? "Auswertung" : "Akte " + STORY.kapitel[spiel.kapitel + 1].nr + " öffnen"}</button>
+        <button class="knopf" id="weiter">${letzte ? "Auswertung" : "Akte " + AKTEN[spiel.kapitel + 1].nr + " öffnen"}</button>
         <span class="leise">Punkte gesamt: ${spiel.punkte}</span>
       </div>
     </article>`);
