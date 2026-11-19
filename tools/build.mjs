@@ -28,7 +28,9 @@ function einbetten(text, pfad) {
   if (!existsSync(voll)) { console.log(`Hinweis: ${pfad} fehlt.`); return text; }
   const daten = readFileSync(voll).toString("base64");
   console.log(`${pfad} eingebettet (${Math.round(daten.length / 1024)} kB).`);
-  return text.replaceAll(pfad, `data:image/png;base64,${daten}`);
+  // Auch Adressen mit angehängter Versionsnummer (…?v=5) ersetzen
+  const muster = new RegExp(pfad.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "(\\?[^\"'\\s)]*)?", "g");
+  return text.replace(muster, `data:image/png;base64,${daten}`);
 }
 
 /* Eine Seite mit allen Stilen und Skripten zu einer Datei zusammenziehen */
@@ -40,9 +42,9 @@ function seiteBauen(htmlDatei) {
   const appleTreffer = html.match(/<meta name="apple-mobile-web-app-capable"[\s\S]*?<link rel="icon"[^>]*>/);
   const apple = appleTreffer ? appleTreffer[0] : "";
 
-  const stile = [...html.matchAll(/<link rel="stylesheet" href="(assets\/[^"]+)">/g)]
+  const stile = [...html.matchAll(/<link rel="stylesheet" href="(assets\/[^"?]+)(?:\?[^"]*)?">/g)]
     .map((t) => lies(t[1])).join("\n\n");
-  const skripte = [...html.matchAll(/<script src="(assets\/[^"]+)"><\/script>/g)]
+  const skripte = [...html.matchAll(/<script src="(assets\/[^"?]+)(?:\?[^"]*)?"><\/script>/g)]
     .map((t) => lies(t[1])).join("\n\n");
 
   const koerperTreffer = html.match(/<body([^>]*)>([\s\S]*)<\/body>/);

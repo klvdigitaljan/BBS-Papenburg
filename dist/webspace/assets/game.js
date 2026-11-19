@@ -17,7 +17,7 @@ const SPEICHER          = "dreizehn-minuten.rangliste";
 /* Pfad zum Schullogo. tools/build.mjs ersetzt diese Zeichenkette beim Bauen der
    Einzeldatei durch das eingebettete Bild, damit die Datei ohne Ordner auskommt.
    Fehlt die Datei, bleibt nur der Schriftzug stehen — kein kaputtes Bildsymbol. */
-const LOGO_QUELLE = "assets/logo.png";
+const LOGO_QUELLE = "assets/logo.png?v=5";
 
 function schulmarke(klasse) {
   return `<span class="schulmarke ${klasse || ""}">
