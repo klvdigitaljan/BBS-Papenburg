@@ -8,6 +8,20 @@
  *   node tools/qr-pruefen.mjs
  */
 import { execFileSync } from "node:child_process";
+
+/* Den Python-Aufruf nehmen, unter dem der Decoder wirklich liegt — je nach
+   Rechner heißt der python3, python3.13 oder python. */
+function pythonMitDecoder() {
+  for (const kandidat of ["python3", "python3.13", "python3.12", "python"]) {
+    try {
+      execFileSync(kandidat, ["-c", "import cv2, numpy"], { stdio: "ignore" });
+      return kandidat;
+    } catch (e) { /* nächsten versuchen */ }
+  }
+  console.error("Kein Python mit OpenCV gefunden. Einmalig einrichten:\n" +
+                "  pip install opencv-python-headless numpy");
+  process.exit(2);
+}
 import { writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 const QR = createRequire(import.meta.url)("../assets/qr.js");
@@ -48,7 +62,7 @@ print(json.dumps(ergebnis))
 const felder = proben.map((t) => QR.raster(t));
 const tmp = process.env.TMPDIR ? `${process.env.TMPDIR}/qr-pruefung.json` : "/tmp/qr-pruefung.json";
 writeFileSync(tmp, JSON.stringify(felder));
-const gelesen = JSON.parse(execFileSync("python3", ["-c", skript, tmp], { encoding: "utf8" }));
+const gelesen = JSON.parse(execFileSync(pythonMitDecoder(), ["-c", skript, tmp], { encoding: "utf8" }));
 
 let fehler = 0;
 proben.forEach((text, i) => {
